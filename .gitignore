@@ -1,0 +1,11 @@
+# IDE
+.idea
+nbproject
+.buildpath
+.project
+.settings
+.directory
+.vscode
+
+.env
+docker-compose.local.yml
