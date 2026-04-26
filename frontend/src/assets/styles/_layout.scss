@@ -1,0 +1,101 @@
+// Скелет страницы
+.app-header {
+  background: $white;
+  box-shadow: $box-shadow-sm;
+  position: sticky;
+  top: 0;
+  z-index: $z-index-dropdown;
+
+  .header-container {
+    @include flex(row, space-between, center);
+    padding: $spacing-md 0;
+  }
+
+  .logo {
+    font-size: $font-size-xl;
+    font-weight: bold;
+    color: $primary-color;
+  }
+
+  .nav-menu {
+    @include flex(row, center, center, $spacing-md);
+
+    @include respond-to(sm) {
+      display: none; // Мобильное меню скрыто
+    }
+  }
+
+  .nav-link {
+    color: $gray-700;
+    transition: color $transition-fast;
+
+    &:hover,
+    &.router-link-active {
+      color: $primary-color;
+    }
+  }
+}
+
+.app-footer {
+  background: $gray-800;
+  color: $gray-400;
+  padding: $spacing-lg 0;
+  margin-top: auto;
+
+  .footer-container {
+    @include flex(row, space-between, center);
+
+    @include respond-to(sm) {
+      flex-direction: column;
+      gap: $spacing-md;
+      text-align: center;
+    }
+  }
+}
+
+// Секции
+.section {
+  padding: $spacing-xl 0;
+
+  &-title {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+// Карточки
+.card-grid {
+  @include grid(3, $spacing-lg);
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  @include card;
+
+  &-header {
+    margin-bottom: $spacing-md;
+    border-bottom: 1px solid $gray-200;
+    padding-bottom: $spacing-sm;
+  }
+
+  &-title {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-xs;
+  }
+
+  &-content {
+    margin-bottom: $spacing-md;
+  }
+
+  &-footer {
+    border-top: 1px solid $gray-200;
+    padding-top: $spacing-md;
+  }
+}

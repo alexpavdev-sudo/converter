@@ -1,0 +1,20 @@
+// Импорт всех SCSS файлов в правильном порядке
+
+// 1. Переменные и миксины
+@import './variables';
+@import './mixins';
+
+// 2. Сброс и база
+@import './reset';
+@import './base';
+
+// 3. Компоненты
+@import './layout';
+@import './buttons';
+@import './forms';
+
+// 4. Утилиты
+@import './utilities';
+
+// 5. Адаптивность (в конце)
+@import './responsive';

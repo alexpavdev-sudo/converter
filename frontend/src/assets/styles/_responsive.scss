@@ -1,0 +1,47 @@
+// Адаптивные классы
+.hide-on-mobile {
+  @include respond-to(sm) {
+    display: none !important;
+  }
+}
+
+.show-on-mobile {
+  display: none !important;
+
+  @include respond-to(sm) {
+    display: block !important;
+  }
+}
+
+// Мобильное меню (гамбургер)
+.mobile-menu-toggle {
+  display: none;
+
+  @include respond-to(sm) {
+    display: block;
+    background: none;
+    border: none;
+    font-size: $font-size-xl;
+    cursor: pointer;
+  }
+}
+
+// Адаптивные отступы
+.responsive-padding {
+  padding: $spacing-xl;
+
+  @include respond-to(md) {
+    padding: $spacing-lg;
+  }
+
+  @include respond-to(sm) {
+    padding: $spacing-md;
+  }
+}
+
+// Адаптивные заголовки
+h1 {
+  @include respond-to(sm) {
+    font-size: $font-size-xl;
+  }
+}

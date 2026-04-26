@@ -5,6 +5,31 @@ services:
     ports:
       - "2345:2345"
     volumes:
-      - ./backend:/app
-      - /app/tmp
-    profiles: [ "dev" ]
+      - ./backend:/home/appuser/app
+
+  converter:
+    build:
+      target: dev
+    ports:
+      - "2346:2345"
+    volumes:
+      - ./backend:/home/appuser/app
+
+  frontend:
+    build:
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  db:
+    ports:
+      - "5432:5432"
+
+networks:
+  backend-db:
+    internal: false
+  backend-rabbitmq:
+    internal: false

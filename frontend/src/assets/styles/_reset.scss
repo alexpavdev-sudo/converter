@@ -1,0 +1,55 @@
+// Современный сброс стилей
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: $font-family-base;
+  font-size: $font-size-base;
+  line-height: 1.5;
+  color: $gray-800;
+  background-color: $gray-100;
+}
+
+// Убираем стандартные стили списков
+ul, ol {
+  list-style: none;
+}
+
+// Убираем подчёркивание у ссылок
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+// Стили для изображений
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+// Стили для форм
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+// Стили для таблиц
+table {
+  border-collapse: collapse;
+  width: 100%;
+}

@@ -1,36 +1,79 @@
 package main
 
 import (
-	"converter/internal/config"
-	"converter/internal/handlers"
-	"converter/internal/session"
+	"context"
+	"converter/app"
+	"converter/controllers"
+	"converter/helpers"
+	"converter/services/cleanup"
+	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/csrf"
+	adapter "github.com/gwatts/gin-adapter"
 	"log"
+	"time"
 )
 
+func init() {
+	if helpers.IsRaceEnabled() {
+		fmt.Println("[WARN] Детектор гонок ВКЛЮЧЕН")
+	}
+}
+
 func main() {
-	// 1. Загружаем конфигурацию
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatal("Config error:", err)
-	}
+	app.Init()
+	defer app.App().DeInit()
 
-	// 2. Создаём хранилище сессий
-	store, err := session.NewRedisStore(cfg)
-	if err != nil {
-		log.Fatal("Redis store error:", err)
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cleanup.Start(ctx)
 
-	// 3. Настраиваем Gin
 	r := gin.Default()
-	r.Use(sessions.Sessions("mysession", store))
+	initMiddleware(r)
+	initHandlers(r)
 
-	// 4. Регистрируем маршруты
-	r.GET("/ping", handlers.Ping)
-
-	// 5. Запуск
 	if err := r.Run(); err != nil {
 		log.Fatal("Server error:", err)
 	}
+}
+
+func initHandlers(r *gin.Engine) {
+	filesGroup := r.Group("/files")
+	{
+		filesGroup.POST("/upload", controllers.Upload)
+		filesGroup.GET("/", controllers.GetFiles)
+		filesGroup.GET("/:id", controllers.GetFile)
+		filesGroup.DELETE("/:id", controllers.DeleteFile)
+		filesGroup.GET("/download/:storedName", controllers.DownloadFile)
+	}
+	formatsGroup := r.Group("/formats")
+	{
+		formatsGroup.GET("/", controllers.GetFormats)
+	}
+	r.GET("/user/profile", controllers.NewUserHandler().GetProfile)
+	r.GET("/ping", controllers.Ping)
+}
+
+func initMiddleware(r *gin.Engine) {
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8080"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	r.Use(sessions.Sessions(app.App().Config.SessionConfig.SessionName, *app.App().SessionStore))
+
+	r.Use(func(c *gin.Context) {
+		patchedReq := csrf.PlaintextHTTPRequest(c.Request)
+		c.Request = patchedReq
+		c.Next()
+	})
+
+	r.Use(adapter.Wrap(csrf.Protect(
+		app.App().Config.BaseConfig.CsrfKey,
+		csrf.Secure(false),
+		csrf.Path("/"),
+	)))
 }

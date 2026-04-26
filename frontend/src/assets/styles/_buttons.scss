@@ -1,0 +1,83 @@
+// Базовый класс кнопки
+.btn {
+  @include button-base;
+
+  // Размеры
+  &-sm {
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-size-sm;
+  }
+
+  &-lg {
+    padding: $spacing-md $spacing-xl;
+    font-size: $font-size-lg;
+  }
+
+  // Варианты
+  &-primary {
+    background: $primary-color;
+    color: $white;
+
+    &:hover:not(:disabled) {
+      background: $primary-dark;
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  &-secondary {
+    background: $secondary-color;
+    color: $white;
+
+    &:hover:not(:disabled) {
+      background: darken($secondary-color, 10%);
+    }
+  }
+
+  &-danger {
+    background: $danger-color;
+    color: $white;
+
+    &:hover:not(:disabled) {
+      background: darken($danger-color, 10%);
+    }
+  }
+
+  &-success {
+    background: $success-color;
+    color: $white;
+
+    &:hover:not(:disabled) {
+      background: darken($success-color, 10%);
+    }
+  }
+
+  &-outline {
+    background: transparent;
+    border: 2px solid currentColor;
+
+    &-primary {
+      color: $primary-color;
+
+      &:hover {
+        background: $primary-color;
+        color: $white;
+      }
+    }
+  }
+
+  &-ghost {
+    background: transparent;
+
+    &-primary {
+      color: $primary-color;
+
+      &:hover {
+        background: rgba($primary-color, 0.1);
+      }
+    }
+  }
+}

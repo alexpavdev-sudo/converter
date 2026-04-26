@@ -1,0 +1,104 @@
+// Формы
+.form {
+  max-width: 500px;
+  margin: 0 auto;
+
+  &-group {
+    margin-bottom: $spacing-lg;
+  }
+
+  &-label {
+    display: block;
+    margin-bottom: $spacing-xs;
+    font-weight: 500;
+    color: $gray-700;
+  }
+
+  &-control {
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $gray-300;
+    border-radius: $border-radius-md;
+    transition: all $transition-fast;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+
+    &.is-invalid {
+      border-color: $danger-color;
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba($danger-color, 0.1);
+      }
+    }
+
+    &.is-valid {
+      border-color: $success-color;
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba($success-color, 0.1);
+      }
+    }
+
+    &:disabled {
+      background: $gray-100;
+      cursor: not-allowed;
+    }
+  }
+
+  &-text {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: $font-size-sm;
+    color: $gray-600;
+
+    &.error {
+      color: $danger-color;
+    }
+
+    &.success {
+      color: $success-color;
+    }
+  }
+
+  &-actions {
+    @include flex(row, center, center, $spacing-md);
+    margin-top: $spacing-xl;
+  }
+}
+
+// Стили для чекбоксов и радио
+.checkbox,
+.radio {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  cursor: pointer;
+
+  input {
+    cursor: pointer;
+  }
+
+  label {
+    margin: 0;
+    cursor: pointer;
+  }
+}
+
+// Стили для селектов
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right $spacing-md center;
+  background-size: 12px;
+}
+
+// Стили для textarea
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}

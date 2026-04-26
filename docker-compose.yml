@@ -3,32 +3,112 @@ version: '3.8'
 services:
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
+    restart: always
     networks:
-      - app-network
+      - backend-redis
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-    profiles: [ "dev", "prod" ]
 
   backend:
     build:
       context: ./backend
+      dockerfile: docker/server/Dockerfile
       target: prod
-    ports:
-      - "8080:8080"
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     depends_on:
+      - db
       - redis
     environment:
+      - DB_URL=${DB_URL}
       - REDIS_ADDR=redis:6379
       - SESSION_AUTH_KEY=${SESSION_AUTH_KEY}
       - SESSION_ENC_KEY=${SESSION_ENC_KEY}
-    restart: unless-stopped
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER}
+      - BASIC_AUTH_PW=${BASIC_AUTH_PW}
+      - CSRF_KEY=${CSRF_KEY}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}/
+    restart: always
     networks:
-      - app-network
-    profiles: [ "prod" ]
+      - backend-db
+      - backend-redis
+      - frontend-backend
+      - backend-rabbitmq
+    volumes:
+      - ${FILE_FOLDER:-../runtime/converter/files}:/home/appuser/files:rw
+
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - frontend-backend
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    networks:
+      - backend-db
+    volumes:
+      - ${DB_FOLDER:-../runtime/converter/db/postgres}:/var/lib/postgresql/data
+
+  converter:
+    deploy:
+      mode: replicated
+      replicas: ${CONVERTER_REPLICAS}
+    build:
+      context: ./backend
+      dockerfile: docker/converter/Dockerfile
+      target: prod
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    environment:
+      - DB_URL=${DB_URL}
+      - REDIS_ADDR=redis:6379
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}/
+    restart: always
+    networks:
+      - backend-db
+      - backend-redis
+      - backend-rabbitmq
+    volumes:
+      - ${FILE_FOLDER:-../runtime/converter/files}:/home/appuser/files:rw
+
+  rabbitmq:
+    image: rabbitmq:4.3.0-management-alpine
+    restart: always
+    networks:
+      - backend-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    volumes:
+      - ${RABBITMQ_FOLDER}:/var/lib/rabbitmq
+    ports:
+      - ${RABBITMQ_MGMT_PORT}:15672
 
 networks:
-  app-network:
+  frontend-backend:
     driver: bridge
+  backend-redis:
+    driver: bridge
+    internal: true
+  backend-db:
+    driver: bridge
+    internal: true
+  backend-rabbitmq:
+    driver: bridge
+    internal: true
