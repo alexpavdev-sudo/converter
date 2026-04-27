@@ -27,6 +27,9 @@
         <!-- Выбор формата -->
         <div class="info">
           <div>
+            <div class="size">
+              {{ image.status }}
+            </div>
             <div class="original-format">
               в: {{ image.format.toUpperCase() }}
             </div>

@@ -23,7 +23,7 @@ func init() {
 }
 
 func main() {
-	app.Init()
+	app.Init(false)
 	defer app.App().DeInit()
 
 	ctx, cancel := context.WithCancel(context.Background())

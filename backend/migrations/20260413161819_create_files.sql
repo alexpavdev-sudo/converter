@@ -17,6 +17,7 @@ CREATE TABLE files
 
 -- Уникальный индекс на stored_name
 CREATE UNIQUE INDEX idx_files_stored_name ON files (stored_name);
+CREATE UNIQUE INDEX idx_files_processed_path ON files (processed_path);
 
 -- Индексы для поиска
 CREATE INDEX idx_files_extension ON files (extension);

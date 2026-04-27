@@ -1,6 +1,10 @@
 package main
 
 import (
+	"converter/app"
+	"converter/services/converter"
+	"converter/services/uploader"
+	"encoding/json"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 	"os"
@@ -13,6 +17,9 @@ func exit(err error, msg string) {
 }
 
 func main() {
+	app.Init(true)
+	defer app.App().DeInit()
+
 	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	exit(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -40,7 +47,7 @@ func main() {
 	)
 	exit(err, "Failed to set QoS")
 
-	msgs, err := ch.Consume(
+	deliveries, err := ch.Consume(
 		q.Name,
 		"",
 		false,
@@ -54,10 +61,17 @@ func main() {
 	var forever chan struct{}
 
 	go func() {
-		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-			log.Printf("Done")
-			d.Ack(false)
+		for delivery := range deliveries {
+			var msg uploader.Message
+			err := json.Unmarshal(delivery.Body, &msg)
+			if err != nil {
+				log.Printf("error: %s", err)
+				break
+			}
+
+			converter.NewConverter(msg.FileID).Run()
+
+			delivery.Ack(false)
 		}
 	}()
 

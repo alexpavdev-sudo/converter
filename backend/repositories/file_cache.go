@@ -127,6 +127,32 @@ func (r *CachedFileRepository) GetFile(guestId uint, fileId uint) (entities.File
 	return file, nil
 }
 
+func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
+	key := r.keyFile(fileId)
+	ctx := context.Background()
+
+	var file entities.File
+	_, err := r.marsh.Get(ctx, key, &file)
+	if err == nil && file.ID != 0 {
+		return file, nil
+	}
+
+	file, err = r.repo.GetFileById(fileId)
+	if err != nil {
+		return file, err
+	}
+
+	if file.ID != 0 {
+		if err := r.marsh.Set(ctx, key, file, store.WithTags([]string{
+			r.tagAll(),
+		})); err != nil {
+			log.Printf("failed to set cache: %v", err)
+		}
+	}
+
+	return file, nil
+}
+
 func (r *CachedFileRepository) key(k string) string {
 	return fmt.Sprintf("file:repo:%s", k)
 }
@@ -139,7 +165,7 @@ func (r *CachedFileRepository) tagGuest(guestId uint) string {
 	return r.key(fmt.Sprintf("guest:%d", guestId))
 }
 
-func (r *CachedFileRepository) tagFile(fileId uint) string {
+func (r *CachedFileRepository) keyFile(fileId uint) string {
 	return r.key(fmt.Sprintf("file:%d", fileId))
 }
 
@@ -148,14 +174,6 @@ func (r *CachedFileRepository) InvalidateGuest(guestId uint) error {
 
 	return r.marsh.Invalidate(ctx, store.WithInvalidateTags([]string{
 		r.tagGuest(guestId),
-	}))
-}
-
-func (r *CachedFileRepository) InvalidateFile(fileId uint) error {
-	ctx := context.Background()
-
-	return r.marsh.Invalidate(ctx, store.WithInvalidateTags([]string{
-		r.tagFile(fileId),
 	}))
 }
 

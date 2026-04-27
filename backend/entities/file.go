@@ -28,28 +28,35 @@ func (f *File) PathFull() string {
 	if f.Path == "" {
 		return ""
 	}
-	return filepath.Join(config.UploadDir, f.Path)
+	return filepath.Join(config.UploadDir, f.Path+"."+f.Extension)
+}
+
+func ProcessedPathFull(processedPath string, format string) string {
+	if processedPath == "" {
+		return ""
+	}
+	return filepath.Join(config.ConvertedDir, processedPath+"."+format)
 }
 
 type FileStatus uint8
 
 const (
-	StatusQueued     FileStatus = iota // 0 - В очереди
-	StatusProcessing                   // 1 - В обработке
-	StatusProcessed                    // 2 - Обработан
-	StatusError                        // 3 - Ошибка
+	StatusQueued     FileStatus = iota // 0 - в очереди
+	StatusProcessing                   // 1 - в обработке
+	StatusProcessed                    // 2 - обработан
+	StatusError                        // 3 - ошибка
 )
 
 func (s FileStatus) String() string {
 	switch s {
 	case StatusQueued:
-		return "queued"
+		return "в очереди"
 	case StatusProcessing:
-		return "processing"
+		return "в обработке"
 	case StatusProcessed:
-		return "processed"
+		return "обработан"
 	case StatusError:
-		return "error"
+		return "ошибка"
 	default:
 		return "unknown"
 	}

@@ -30,6 +30,7 @@ type Config struct {
 }
 
 type Application struct {
+	isConsole    bool
 	Config       Config
 	SessionStore *sessions.Store
 	DB           *gorm.DB
@@ -43,16 +44,22 @@ func App() *Application {
 	return instance
 }
 
-func Init() {
+func Init(isConsole bool) {
 	once.Do(func() {
-		cfg := getConfig()
+		cfg := getConfig(isConsole)
 		db := openDB(cfg.BaseConfig.DbUrl)
+
+		var sessionStore *sessions.Store
+		if !isConsole {
+			sessionStore = session.NewRedisStore(cfg.RedisConfig, cfg.SessionConfig)
+		}
 
 		instance = &Application{
 			Config:       cfg,
-			SessionStore: session.NewRedisStore(cfg.RedisConfig, cfg.SessionConfig),
+			SessionStore: sessionStore,
 			DB:           db,
 			FileRepo:     getFileRepo(db),
+			isConsole:    isConsole,
 		}
 	})
 }
@@ -79,14 +86,18 @@ func getFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
 	return repositories.NewFileRepository(db)
 }
 
-func getConfig() Config {
-	baseCfg, err := config.GetBaseConfig()
+func getConfig(isConsole bool) Config {
+	baseCfg, err := config.GetBaseConfig(isConsole)
 	if err != nil {
 		log.Fatal("Config error:", err)
 	}
-	sessionCfg, err := config.GetSessionConfig()
-	if err != nil {
-		log.Fatal("Config error:", err)
+
+	var sessionCfg *config.SessionConfig
+	if !isConsole {
+		sessionCfg, err = config.GetSessionConfig()
+		if err != nil {
+			log.Fatal("Config error:", err)
+		}
 	}
 	redisCfg, err := config.GetRedisConfig()
 	if err != nil {

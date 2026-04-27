@@ -6,6 +6,7 @@ import (
 	"converter/entities"
 	"converter/helpers"
 	"converter/services/user"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -129,7 +130,7 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 	if err := os.MkdirAll(personalDirFull, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create directory")
 	}
-	finalPathFull := filepath.Join(personalDirFull, storedName+ext)
+	finalPathFull := filepath.Join(personalDirFull, storedName+"."+ext)
 	fileRes, err := os.OpenFile(finalPathFull, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
@@ -155,10 +156,10 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 
 	fileRecord := &entities.File{
 		StoredName:   storedName,
-		Extension:    ext,
+		Extension:    strings.ToLower(ext),
 		OriginalName: part.FileName(),
-		Path:         filepath.Join(personalDir, storedName+ext),
-		Format:       format,
+		Path:         filepath.Join(personalDir, storedName),
+		Format:       strings.ToLower(format),
 		Size:         written,
 		Status:       entities.StatusQueued,
 		CreatedAt:    time.Now(),
@@ -197,6 +198,11 @@ func exit(err error, msg string) {
 		log.Panicf("%s: %s", msg, err)
 	}
 }
+
+type Message struct {
+	FileID uint `json:"file_id"`
+}
+
 func sendConversion(fileId uint) {
 	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	exit(err, "Failed to connect to RabbitMQ")
@@ -221,7 +227,10 @@ func sendConversion(fileId uint) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body := bodyFrom(os.Args)
+	body, err := json.Marshal(&Message{FileID: fileId})
+	if err != nil {
+		log.Printf("error: %s", err)
+	}
 	err = ch.PublishWithContext(ctx,
 		"",     // exchange
 		q.Name, // routing key
@@ -229,21 +238,11 @@ func sendConversion(fileId uint) {
 		false,
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
-			ContentType:  "text/plain",
-			Body:         []byte(body),
+			ContentType:  "application/json",
+			Body:         body,
 		})
 	exit(err, "Failed to publish a message")
 	log.Printf(" [x] Sent %s", body)
-}
-
-func bodyFrom(args []string) string {
-	var s string
-	if (len(args) < 2) || os.Args[1] == "" {
-		s = "hello"
-	} else {
-		s = strings.Join(args[1:], " ")
-	}
-	return s
 }
 
 func (u *StreamFileUploader) generateUniqueStoredName() (string, error) {

@@ -7,6 +7,7 @@ import (
 )
 
 const UploadDir = "/home/appuser/files"
+const ConvertedDir = "/home/appuser/files_converted"
 const PrefixGuestDir = "guest_"
 const SessionDuration = 86400
 
@@ -24,14 +25,18 @@ type BaseConfig struct {
 	DbUrl   string
 }
 
-func GetBaseConfig() (*BaseConfig, error) {
-	csrfKey, err := base64.StdEncoding.DecodeString(os.Getenv("CSRF_KEY"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid CSRF_KEY base64: %w", err)
-	}
+func GetBaseConfig(isConsole bool) (*BaseConfig, error) {
+	var csrfKey []byte
+	if !isConsole {
+		var err error
+		csrfKey, err = base64.StdEncoding.DecodeString(os.Getenv("CSRF_KEY"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid CSRF_KEY base64: %w", err)
+		}
 
-	if len(csrfKey) != 32 {
-		return nil, fmt.Errorf("CSRF_KEY decoded length %d, expected 32", len(csrfKey))
+		if len(csrfKey) != 32 {
+			return nil, fmt.Errorf("CSRF_KEY decoded length %d, expected 32", len(csrfKey))
+		}
 	}
 
 	return &BaseConfig{

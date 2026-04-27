@@ -3,6 +3,7 @@ module converter
 go 1.26.1
 
 require (
+	github.com/chai2010/webp v1.4.0
 	github.com/eko/gocache/lib/v4 v4.2.3
 	github.com/eko/gocache/store/redis/v4 v4.2.6
 	github.com/gin-contrib/cors v1.7.7

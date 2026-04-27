@@ -31,6 +31,7 @@ type File struct {
 	OriginalName string    `json:"original_name"`
 	Format       string    `json:"format"`
 	Size         int64     `json:"size"`
+	Status       string    `json:"status"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -42,6 +43,7 @@ var fileToDTO = mapper.New(func(e entities.File) File {
 		OriginalName: e.OriginalName,
 		Format:       e.Format,
 		Size:         e.Size,
+		Status:       e.Status.String(),
 		CreatedAt:    e.CreatedAt,
 		UpdatedAt:    e.UpdatedAt,
 	}
