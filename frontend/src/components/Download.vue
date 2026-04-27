@@ -3,6 +3,7 @@
     <DownloadList
         :images="images"
         @remove="removeImage"
+        @download="downloadImage"
     />
   </div>
 </template>
@@ -46,6 +47,15 @@ const removeImage = async (id) => {
     }
   } catch (error) {
     console.error('Failed to remove image:', error);
+  }
+}
+
+const downloadImage = async (id) => {
+  try {
+    const url = `/api/files/download/${id}`;
+    window.open(url, '_blank');
+    // await api.get(`/api/files/download/${id}`);
+  } catch (error) {
   }
 }
 

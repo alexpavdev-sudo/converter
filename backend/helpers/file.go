@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"path/filepath"
 )
 
 func GenerateRandomStoredName(length int) (string, error) {
@@ -17,4 +18,10 @@ func GenerateRandomStoredName(length int) (string, error) {
 		result[i] = charset[num.Int64()]
 	}
 	return string(result), nil
+}
+
+func GetFileNameWithoutExt(filePath string) string {
+	filename := filepath.Base(filePath)
+	ext := filepath.Ext(filename)
+	return filename[:len(filename)-len(ext)]
 }

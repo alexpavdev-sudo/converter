@@ -12,34 +12,29 @@
         <div class="preview">
           <img src="" :alt="image.original_name"/>
         </div>
-
-        <!-- Информация о файле -->
         <div class="info">
           <div class="name">{{ image.original_name }}</div>
-          <div>
-            <div class="size">{{ func.formatFileSize(image.size) }}</div>
-            <div class="original-format">
-              Исходный: {{ image.extension.toUpperCase() }}
-            </div>
-          </div>
         </div>
-
-        <!-- Выбор формата -->
         <div class="info">
           <div>
-            <div class="size">
-              {{ image.status }}
-            </div>
+            <div class="size">Исходный</div>
             <div class="original-format">
-              в: {{ image.format.toUpperCase() }}
+              {{ image.extension.toUpperCase() }} / {{ func.formatFileSize(image.size) }}
             </div>
           </div>
         </div>
-
-        <!-- Кнопка удаления -->
-        <button @click="removeImage(image.id)" class="remove-btn" title="Удалить">
-          ✕
-        </button>
+        <div class="info">
+          <div>
+            <div class="size">{{ image.status_label }}</div>
+            <div class="original-format">
+              {{ image.format.toUpperCase() }} / {{ func.formatFileSize(image.size_processed) }}
+            </div>
+          </div>
+        </div>
+        <div class="info">
+          <button @click="downloadImage(image.id)" v-if="image.status == 2" class="btn-sm btn-primary" title="Скачать">Скачать</button>
+        </div>
+        <button @click="removeImage(image.id)" class="remove-btn" title="Удалить">✕</button>
       </div>
     </div>
 
@@ -60,11 +55,13 @@ const props = defineProps<{
   images: File[]
 }>()
 
-const emit = defineEmits(['remove', 'update-format'])
-
+const emit = defineEmits(['remove', 'download', 'update-format'])
 
 const removeImage = (id) => {
   emit('remove', id)
+}
+const downloadImage = (id) => {
+  emit('download', id)
 }
 
 const updateFormat = (id, format) => {
@@ -91,7 +88,7 @@ const updateFormat = (id, format) => {
 
 .image-item {
   display: grid;
-  grid-template-columns: 80px 1fr 150px 40px;
+  grid-template-columns: 80px 2fr 2fr 2fr 1fr 40px;
   align-items: center;
   gap: 15px;
   padding: 15px;

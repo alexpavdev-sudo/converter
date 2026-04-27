@@ -5,6 +5,7 @@ import (
 	"converter/config"
 	"converter/dto"
 	"converter/entities"
+	"converter/helpers"
 	deleteFile "converter/services/delete"
 	"converter/services/uploader"
 	"converter/services/user"
@@ -84,17 +85,29 @@ func GetFile(c *gin.Context) {
 }
 
 func DownloadFile(c *gin.Context) {
-	storedName := c.Param("storedName")
-	db := app.App().DB
-
-	var file entities.File
-	if err := db.Where("stored_name = ?", storedName).First(&file).Error; err != nil {
+	var req FileRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		app.Fail(c, 400, "1", "Invalid file ID: "+err.Error())
+		return
+	}
+	userService := user.NewUserService(sessions.Default(c))
+	guestId, err := userService.GuestId()
+	if err != nil {
+		app.Fail(c, 400, "1", "failed to get guest id")
+		return
+	}
+	file, err := app.App().FileRepo.GetFile(guestId, req.ID)
+	if err != nil {
 		app.Fail(c, 404, "1", "File not found")
 		return
 	}
+	if file.Status != entities.StatusProcessed {
+		app.Fail(c, 404, "1", "File not processed")
+		return
+	}
 
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.OriginalName))
-	c.File(file.PathFull())
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", helpers.GetFileNameWithoutExt(file.OriginalName)+"."+file.Format))
+	c.File(file.ProcessedPathFull())
 }
 
 func DeleteFile(c *gin.Context) {

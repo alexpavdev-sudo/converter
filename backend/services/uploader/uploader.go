@@ -6,6 +6,7 @@ import (
 	"converter/entities"
 	"converter/helpers"
 	"converter/services/user"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-contrib/sessions"
@@ -155,18 +156,19 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 	defer tx.Rollback()
 
 	fileRecord := &entities.File{
-		StoredName:   storedName,
-		Extension:    strings.ToLower(ext),
-		OriginalName: part.FileName(),
-		Path:         filepath.Join(personalDir, storedName),
-		Format:       strings.ToLower(format),
-		Size:         written,
-		Status:       entities.StatusQueued,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		StoredName:    storedName,
+		Extension:     strings.ToLower(ext),
+		OriginalName:  part.FileName(),
+		Path:          filepath.Join(personalDir, storedName),
+		ProcessedPath: sql.NullString{String: "", Valid: false},
+		Format:        strings.ToLower(format),
+		Size:          written,
+		Status:        entities.StatusQueued,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 	if err := tx.Create(fileRecord).Error; err != nil {
-		return nil, fmt.Errorf("error save file")
+		return nil, fmt.Errorf("error save file: %s", err.Error())
 	}
 
 	if u.userService.IsAuthenticated() {

@@ -6,10 +6,13 @@ import (
 	"converter/config"
 	"converter/entities"
 	"converter/helpers"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 )
+
+const PermFile = 0600
 
 type Converter struct {
 	fileId uint
@@ -46,7 +49,7 @@ func (c *Converter) Run() {
 		log.Printf("error generate unique processed path: %s", err.Error())
 		return
 	}
-	err = converter.Convert(file.PathFull(), entities.ProcessedPathFull(processedPath, file.Format))
+	size, err := converter.Convert(file.PathFull(), entities.ProcessedPathFull(sql.NullString{String: processedPath, Valid: true}, file.Format), PermFile)
 	if err != nil {
 		log.Printf("error convert: %s", err.Error())
 		return
@@ -54,7 +57,7 @@ func (c *Converter) Run() {
 
 	result = app.App().DB.Model(&entities.File{}).
 		Where("id = ?", file.ID).
-		Updates(map[string]interface{}{"processed_path": processedPath, "Status": entities.StatusProcessed})
+		Updates(map[string]interface{}{"processed_path": processedPath, "Status": entities.StatusProcessed, "size_processed": size})
 
 	if result.Error != nil {
 		log.Printf("failed to update processed_path")

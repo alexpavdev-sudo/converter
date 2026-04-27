@@ -11,6 +11,7 @@ CREATE TABLE files
     processed_path TEXT,
     format         VARCHAR(50)  NOT NULL,
     size           BIGINT       NOT NULL,
+    size_processed BIGINT,
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

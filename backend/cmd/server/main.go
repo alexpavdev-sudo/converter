@@ -46,7 +46,7 @@ func initHandlers(r *gin.Engine) {
 		filesGroup.GET("/", controllers.GetFiles)
 		filesGroup.GET("/:id", controllers.GetFile)
 		filesGroup.DELETE("/:id", controllers.DeleteFile)
-		filesGroup.GET("/download/:storedName", controllers.DownloadFile)
+		filesGroup.GET("/download/:id", controllers.DownloadFile)
 	}
 	formatsGroup := r.Group("/formats")
 	{
