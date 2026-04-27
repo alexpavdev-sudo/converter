@@ -3,6 +3,7 @@ package delete
 import (
 	"converter/app"
 	"converter/entities"
+	"converter/helpers"
 	"github.com/gin-contrib/sessions"
 	"gorm.io/gorm"
 	"os"
@@ -39,9 +40,18 @@ func (s *DeleteService) DeleteFile(guestId uint, fileId uint) error {
 	if err := tx.Where("id = ?", file.ID).Delete(&file).Error; err != nil {
 		return err
 	}
-	if err := os.Remove(file.PathFull()); err != nil {
-		return err
+
+	if helpers.ExistsFile(file.PathFull()) {
+		if err := os.Remove(file.PathFull()); err != nil {
+			return err
+		}
 	}
+	if helpers.ExistsFile(file.ProcessedPathFull()) {
+		if err := os.Remove(file.ProcessedPathFull()); err != nil {
+			return err
+		}
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}

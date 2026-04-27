@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"os"
 	"path/filepath"
 )
 
@@ -24,4 +25,20 @@ func GetFileNameWithoutExt(filePath string) string {
 	filename := filepath.Base(filePath)
 	ext := filepath.Ext(filename)
 	return filename[:len(filename)-len(ext)]
+}
+
+func ExistsDir(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
+
+func ExistsFile(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

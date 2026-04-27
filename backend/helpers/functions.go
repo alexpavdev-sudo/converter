@@ -19,14 +19,6 @@ func IsRaceEnabled() bool {
 	return false
 }
 
-func ExistsDir(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
-}
-
 func Env(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
