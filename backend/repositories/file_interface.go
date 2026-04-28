@@ -9,8 +9,12 @@ type FileRepositoryInterface interface {
 	GetCountFiles(guestId uint) (int64, error)
 	GetFile(guestId uint, fileId uint) (entities.File, error)
 	GetFileById(fileId uint) (entities.File, error)
+
+	SetProcessedPath(fileID uint, processedPath string) error
+
 	SetStatus(fileId uint, status entities.FileStatus) error
-	UpdateProcessed(fileID uint, processedPath string, size int64) error
-	UpdateError(fileID uint, msgErr string) error
+	SetStatusProcessed(fileID uint, size int64) error
+	SetStatusError(fileID uint, msgErr string) error
+
 	CloseRepo() error
 }

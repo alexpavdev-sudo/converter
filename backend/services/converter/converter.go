@@ -33,6 +33,7 @@ func (c *Converter) Run() error {
 		return fmt.Errorf("failed to create directory")
 	}
 
+	//todo проверть статус
 	file, err := c.repo.GetFileById(c.fileId)
 	if err != nil {
 		return fmt.Errorf("error db: %s", err.Error())
@@ -41,7 +42,7 @@ func (c *Converter) Run() error {
 	err = c.repo.SetStatus(file.ID, entities.StatusProcessing)
 	defer func() {
 		if err != nil {
-			c.repo.UpdateError(file.ID, err.Error())
+			c.repo.SetStatusError(file.ID, err.Error())
 		}
 	}()
 	if err != nil {
@@ -57,15 +58,19 @@ func (c *Converter) Run() error {
 	if err != nil {
 		return fmt.Errorf("error generate unique processed path: %s", err.Error())
 	}
+	err = c.repo.SetProcessedPath(file.ID, processedPath)
+	if err != nil {
+		return fmt.Errorf("failed to update processed_path")
+	}
 
 	size, err := converter.Convert(file.PathFull(), entities.ProcessedPathFull(sql.NullString{String: processedPath, Valid: true}, file.Format), PermFile)
 	if err != nil {
 		return fmt.Errorf("error convert: %s", err.Error())
 	}
 
-	err = c.repo.UpdateProcessed(file.ID, processedPath, size)
+	err = c.repo.SetStatusProcessed(file.ID, size)
 	if err != nil {
-		return fmt.Errorf("failed to update processed_path")
+		return fmt.Errorf("failed to update status processed")
 	}
 
 	err = c.repo.SetStatus(file.ID, entities.StatusProcessed)
@@ -73,7 +78,7 @@ func (c *Converter) Run() error {
 		return fmt.Errorf("error set status")
 	}
 
-	log.Printf("done")
+	log.Printf("done: %d", c.fileId)
 	return nil
 }
 

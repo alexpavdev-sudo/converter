@@ -45,6 +45,7 @@ func initHandlers(r *gin.Engine) {
 		filesGroup.POST("/upload", controllers.Upload)
 		filesGroup.GET("/", controllers.GetFiles)
 		filesGroup.GET("/:id", controllers.GetFile)
+		filesGroup.GET("/error/:id", controllers.GetFileError)
 		filesGroup.DELETE("/:id", controllers.DeleteFile)
 		filesGroup.GET("/download/:id", controllers.DownloadFile)
 	}

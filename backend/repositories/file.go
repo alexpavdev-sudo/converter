@@ -21,7 +21,7 @@ func (r *FileRepository) CloseRepo() error {
 	return nil
 }
 
-func (r *FileRepository) UpdateError(fileID uint, details string) error {
+func (r *FileRepository) SetStatusError(fileID uint, details string) error {
 	tx := r.db.Begin(&sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if tx.Error != nil {
 		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
@@ -30,7 +30,7 @@ func (r *FileRepository) UpdateError(fileID uint, details string) error {
 
 	err := tx.Model(&entities.File{}).
 		Where("id = ?", fileID).
-		Updates(map[string]interface{}{"Status": entities.StatusError}).Error
+		Updates(map[string]interface{}{"status": entities.StatusError}).Error
 	if err != nil {
 		return err
 	}
@@ -50,16 +50,22 @@ func (r *FileRepository) UpdateError(fileID uint, details string) error {
 	return nil
 }
 
-func (r *FileRepository) UpdateProcessed(fileID uint, processedPath string, size int64) error {
+func (r *FileRepository) SetProcessedPath(fileID uint, processedPath string) error {
 	return r.db.Model(&entities.File{}).
 		Where("id = ?", fileID).
-		Updates(map[string]interface{}{"Status": entities.StatusProcessed, "processed_path": processedPath, "size_processed": size}).Error
+		Updates(map[string]interface{}{"processed_path": processedPath}).Error
+}
+
+func (r *FileRepository) SetStatusProcessed(fileID uint, size int64) error {
+	return r.db.Model(&entities.File{}).
+		Where("id = ?", fileID).
+		Updates(map[string]interface{}{"status": entities.StatusProcessed, "size_processed": size}).Error
 }
 
 func (r *FileRepository) SetStatus(fileId uint, status entities.FileStatus) error {
 	result := r.db.Model(&entities.File{}).
 		Where("id = ?", fileId).
-		Updates(map[string]interface{}{"Status": status})
+		Updates(map[string]interface{}{"status": status})
 
 	return result.Error
 }

@@ -9,6 +9,7 @@ import (
 	deleteFile "converter/services/delete"
 	"converter/services/uploader"
 	"converter/services/user"
+	"errors"
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -64,43 +65,63 @@ func GetFiles(c *gin.Context) {
 }
 
 func GetFile(c *gin.Context) {
-	var req FileRequest
-	if err := c.ShouldBindUri(&req); err != nil {
-		app.Fail(c, 400, "1", "Invalid file ID: "+err.Error())
-		return
-	}
-	userService := user.NewUserService(sessions.Default(c))
-
-	guestId, err := userService.GuestId()
-	if err != nil {
-		app.Fail(c, 400, "invalid_guest", "Guest not found")
-		return
-	}
-	file, err := app.App().FileRepo.GetFile(guestId, req.ID)
+	file, err := findFile(c)
 	if err != nil {
 		app.Fail(c, 500, "1", err.Error())
 		return
 	}
-	app.OK(c, dto.FileToDTO().Map(file))
+
+	app.OK(c, dto.FileToDTO().Map(*file))
 }
 
-func DownloadFile(c *gin.Context) {
+func findFile(c *gin.Context) (*entities.File, error) {
 	var req FileRequest
 	if err := c.ShouldBindUri(&req); err != nil {
-		app.Fail(c, 400, "1", "Invalid file ID: "+err.Error())
-		return
+		return nil, err
 	}
+
 	userService := user.NewUserService(sessions.Default(c))
 	guestId, err := userService.GuestId()
 	if err != nil {
-		app.Fail(c, 400, "1", "failed to get guest id")
-		return
+		return nil, errors.New("guest not found")
 	}
 	file, err := app.App().FileRepo.GetFile(guestId, req.ID)
+	if err != nil || file.ID <= 0 {
+		return nil, errors.New("file not found")
+	}
+
+	return &file, nil
+}
+
+func GetFileError(c *gin.Context) {
+	file, err := findFile(c)
 	if err != nil {
-		app.Fail(c, 404, "1", "File not found")
+		app.Fail(c, 500, "1", err.Error())
 		return
 	}
+
+	var errorModel entities.Error
+	err = app.App().DB.Model(&entities.Error{}).
+		Where("file_id = ?", file.ID).
+		Order("created_at DESC").
+		Limit(1).
+		First(&errorModel).Error
+
+	if err != nil {
+		app.Fail(c, 500, "1", err.Error())
+		return
+	}
+
+	app.OK(c, errorModel.Details)
+}
+
+func DownloadFile(c *gin.Context) {
+	file, err := findFile(c)
+	if err != nil {
+		app.Fail(c, 500, "1", err.Error())
+		return
+	}
+
 	if file.Status != entities.StatusProcessed {
 		app.Fail(c, 404, "1", "File not processed")
 		return
@@ -111,20 +132,13 @@ func DownloadFile(c *gin.Context) {
 }
 
 func DeleteFile(c *gin.Context) {
-	var req FileRequest
-	if err := c.ShouldBindUri(&req); err != nil {
-		app.Fail(c, 400, "1", "Invalid file ID: "+err.Error())
-		return
-	}
-	userService := user.NewUserService(sessions.Default(c))
-	guestId, err := userService.GuestId()
+	file, err := findFile(c)
 	if err != nil {
-		app.Fail(c, 400, "1", "failed to get guest id")
+		app.Fail(c, 500, "1", err.Error())
 		return
 	}
 
-	deleteService := deleteFile.NewDeleteService(sessions.Default(c))
-	err = deleteService.DeleteFile(guestId, req.ID)
+	err = deleteFile.DeleteFile(*file)
 	if err != nil {
 		app.Fail(c, 500, "1", "Failed to delete file")
 		return

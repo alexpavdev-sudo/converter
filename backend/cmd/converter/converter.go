@@ -41,7 +41,7 @@ func main() {
 	exit(err, "Failed to declare a queue")
 
 	err = ch.Qos(
-		1,     // prefetch count
+		10,    // prefetch count
 		0,     // prefetch size
 		false, // global
 	)
@@ -61,20 +61,22 @@ func main() {
 	var forever chan struct{}
 
 	go func() {
-		for delivery := range deliveries {
-			var msg uploader.Message
-			err := json.Unmarshal(delivery.Body, &msg)
-			if err != nil {
-				log.Printf("error: %s", err)
-				break
-			}
+		for d := range deliveries {
+			go func(delivery amqp.Delivery) {
+				var msg uploader.Message
+				err := json.Unmarshal(delivery.Body, &msg)
+				if err != nil {
+					log.Printf("error: %s", err)
+					return
+				}
 
-			err = converter.NewConverter(msg.FileID).Run()
-			if err != nil {
-				log.Printf(err.Error())
-			}
+				err = converter.NewConverter(msg.FileID).Run()
+				if err != nil {
+					log.Printf(err.Error())
+				}
 
-			delivery.Ack(false)
+				delivery.Ack(false)
+			}(d)
 		}
 	}()
 

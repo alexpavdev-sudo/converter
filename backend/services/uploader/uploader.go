@@ -27,7 +27,6 @@ type StreamFileUploader struct {
 	maxFileSize int64
 	maxSize     int64
 	savedFiles  []entities.File
-	session     sessions.Session
 	userService *user.UserService
 }
 
@@ -41,7 +40,6 @@ func NewStreamFileUploader(reader *multipart.Reader, maxFileSize int64, maxSize 
 		db:          app.App().DB,
 		maxFileSize: maxFileSize,
 		maxSize:     maxSize,
-		session:     session,
 		userService: user.NewUserService(session),
 	}
 }

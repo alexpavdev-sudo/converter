@@ -8,6 +8,11 @@
     font-size: $font-size-sm;
   }
 
+  &-sm {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-sm;
+  }
+
   &-lg {
     padding: $spacing-md $spacing-xl;
     font-size: $font-size-lg;

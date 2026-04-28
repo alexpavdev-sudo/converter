@@ -1,4 +1,3 @@
-<!-- src/components/ImageList.vue -->
 <template>
   <div class="image-list">
     <div class="list-header">
@@ -25,14 +24,20 @@
         </div>
         <div class="info">
           <div>
-            <div class="size">{{ image.status_label }}</div>
+            <div
+                :class="getStatusType(image.status)"
+                :title="image.status == 3 ? 'Нажмите чтобы увидеть ошибку' : ''"
+                @click="image.status == 3 ? showError(image.id) : null">{{ image.status_label }}
+            </div>
             <div class="original-format">
               {{ image.format.toUpperCase() }} / {{ func.formatFileSize(image.size_processed) }}
             </div>
           </div>
         </div>
         <div class="info">
-          <button @click="downloadImage(image.id)" v-if="image.status == 2" class="btn-sm btn-primary" title="Скачать">Скачать</button>
+          <button @click="downloadImage(image.id)" v-if="image.status == 2" class="btn-sm btn-primary"
+                  title="Скачать">Скачать
+          </button>
         </div>
         <button @click="removeImage(image.id)" class="remove-btn" title="Удалить">✕</button>
       </div>
@@ -44,18 +49,63 @@
         <router-link to="/converter-images">➡️ Загрузите изображения для конвертации</router-link>
       </p>
     </div>
+
+    <!-- Модальное окно ошибки -->
+    <div v-if="errorModalVisible" class="modal-overlay" @click="closeErrorModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h4>Ошибка конвертации</h4>
+          <button @click="closeErrorModal" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <p>{{ currentError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeErrorModal" class="btn-sm btn-primary">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
+import {ref} from 'vue'
 import func from "@/services/functionHelper.js";
 import type {File} from '@/types/file'
+import api from '@/services/api';
 
 const props = defineProps<{
   images: File[]
 }>()
 
 const emit = defineEmits(['remove', 'download', 'update-format'])
+
+const errorModalVisible = ref(false)
+const currentError = ref('')
+
+const getStatusType = (status: number) => {
+  switch (status) {
+    case 0:
+      return 'status-queued'
+    case 1:
+      return 'status-processing'
+    case 2:
+      return 'status-processed'
+    case 3:
+      return 'status-error'
+  }
+}
+
+const showError = async (id: number) => {
+  const {data} = await api.get(`/api/files/error/${id}`);
+  currentError.value = data.data
+  errorModalVisible.value = true
+}
+
+const closeErrorModal = () => {
+  errorModalVisible.value = false
+}
 
 const removeImage = (id) => {
   emit('remove', id)
@@ -155,6 +205,11 @@ const updateFormat = (id, format) => {
   }
 }
 
+.btn-error {
+  border: 1px solid $danger-color;
+  color: $danger-color;
+}
+
 .remove-btn {
   width: 32px;
   height: 32px;
@@ -199,6 +254,92 @@ const updateFormat = (id, format) => {
       top: 10px;
       right: 10px;
     }
+  }
+}
+
+//стили модального окна
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: $white;
+  border-radius: $border-radius-md;
+  box-shadow: $box-shadow-lg;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid $gray-200;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h4 {
+    margin: 0;
+    color: $gray-800;
+  }
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: $gray-500;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: $gray-800;
+  }
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 400px;
+
+  p {
+    margin: 0;
+    color: $danger-color;
+    white-space: pre-wrap;
+  }
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid $gray-200;
+  text-align: right;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

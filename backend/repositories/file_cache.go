@@ -50,12 +50,16 @@ func (r *CachedFileRepository) CloseRepo() error {
 	return nil
 }
 
-func (r *CachedFileRepository) UpdateProcessed(fileID uint, processedPath string, size int64) error {
-	return r.repo.UpdateProcessed(fileID, processedPath, size)
+func (r *CachedFileRepository) SetProcessedPath(fileID uint, processedPath string) error {
+	return r.repo.SetProcessedPath(fileID, processedPath)
 }
 
-func (r *CachedFileRepository) UpdateError(fileID uint, msgErr string) error {
-	return r.repo.UpdateError(fileID, msgErr)
+func (r *CachedFileRepository) SetStatusProcessed(fileID uint, size int64) error {
+	return r.repo.SetStatusProcessed(fileID, size)
+}
+
+func (r *CachedFileRepository) SetStatusError(fileID uint, msgErr string) error {
+	return r.repo.SetStatusError(fileID, msgErr)
 }
 
 func (r *CachedFileRepository) SetStatus(fileId uint, status entities.FileStatus) error {

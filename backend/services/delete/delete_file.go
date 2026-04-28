@@ -4,41 +4,18 @@ import (
 	"converter/app"
 	"converter/entities"
 	"converter/helpers"
-	"github.com/gin-contrib/sessions"
 	"gorm.io/gorm"
 	"os"
 )
 
 type DeleteService struct {
-	db      *gorm.DB
-	session sessions.Session
+	db *gorm.DB
 }
 
-func NewDeleteService(session sessions.Session) *DeleteService {
+func NewDeleteService() *DeleteService {
 	return &DeleteService{
-		db:      app.App().DB,
-		session: session,
+		db: app.App().DB,
 	}
-}
-
-func (s *DeleteService) DeleteFile(guestId uint, fileId uint) error {
-	var file entities.File
-	err := app.App().DB.Model(&entities.File{}).
-		Select("files.*").
-		Joins("INNER JOIN guest_files ON guest_files.file_id = files.id").
-		Where("guest_files.guest_id = ? AND guest_files.file_id = ?", guestId, fileId).
-		Take(&file).Error
-	if err != nil {
-		return err
-	}
-
-	err = DeleteFile(file)
-	if err != nil {
-		return err
-	}
-
-	app.ClearCache(guestId)
-	return nil
 }
 
 func DeleteFile(file entities.File) error {
@@ -66,6 +43,7 @@ func DeleteFile(file entities.File) error {
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}
+	//todo cache
 
 	return nil
 }
