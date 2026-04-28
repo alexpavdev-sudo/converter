@@ -5,6 +5,7 @@ import (
 	"converter/app"
 	"converter/config"
 	"converter/entities"
+	deleteFile "converter/services/delete"
 	"log"
 	"os"
 	"time"
@@ -87,7 +88,7 @@ func cleanGuest(guest entities.Guest, duration time.Duration) {
 	}
 
 	for _, file := range files {
-		err = deleteFile(file)
+		err = deleteFile.DeleteFile(file)
 		if err != nil {
 			log.Println("Ошибка удаления файла:", err)
 		}
@@ -120,25 +121,4 @@ func deleteGuest(guest entities.Guest) {
 		log.Println("Ошибка db:", err)
 	}
 	log.Printf("Удален гость %d", guest.ID)
-}
-
-func deleteFile(file entities.File) error {
-	tx := app.App().StartTransaction()
-	if tx.Error != nil {
-		return tx.Error
-	}
-	defer tx.Rollback()
-
-	if err := tx.Where("id = ?", file.ID).Delete(&file).Error; err != nil {
-		return err
-	}
-	if err := os.Remove(file.PathFull()); err != nil {
-		return err
-	}
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-	log.Printf("Удален файл %d по истечению времени хранения", file.ID)
-
-	return nil
 }

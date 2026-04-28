@@ -6,8 +6,10 @@ import (
 	"converter/config"
 	"converter/entities"
 	"converter/helpers"
+	"converter/repositories"
 	"database/sql"
 	"fmt"
+	"gorm.io/gorm"
 	"log"
 	"os"
 )
@@ -16,55 +18,63 @@ const PermFile = 0600
 
 type Converter struct {
 	fileId uint
+	repo   repositories.FileRepositoryInterface
+	db     *gorm.DB
 }
 
 func NewConverter(fileId uint) *Converter {
-	return &Converter{fileId: fileId}
+	return &Converter{fileId: fileId, repo: app.App().FileRepo, db: app.App().DB}
 }
 
-func (c *Converter) Run() {
+func (c *Converter) Run() error {
 	log.Printf("received a message: %d", c.fileId)
-
-	if err := os.MkdirAll(config.ConvertedDir, 0700); err != nil {
-		log.Printf("failed to create directory")
-		return
+	var err error
+	if err = os.MkdirAll(config.ConvertedDir, 0700); err != nil {
+		return fmt.Errorf("failed to create directory")
 	}
 
-	file, err := app.App().FileRepo.GetFileById(c.fileId)
+	file, err := c.repo.GetFileById(c.fileId)
 	if err != nil {
-		log.Printf("error db: %s", err.Error())
-		return
+		return fmt.Errorf("error db: %s", err.Error())
 	}
-	result := app.App().DB.Model(&entities.File{}).
-		Where("id = ?", file.ID).
-		Updates(map[string]interface{}{"Status": entities.StatusProcessing})
+
+	err = c.repo.SetStatus(file.ID, entities.StatusProcessing)
+	defer func() {
+		if err != nil {
+			c.repo.UpdateError(file.ID, err.Error())
+		}
+	}()
+	if err != nil {
+		return fmt.Errorf("error set status")
+	}
 
 	converter, err := converters.Factory{}.Create(file)
 	if err != nil {
-		log.Printf("error factory converter: %s", err.Error())
-		return
+		return fmt.Errorf("error factory converter: %s", err.Error())
 	}
+
 	processedPath, err := c.generateUniqueProcessedPath()
 	if err != nil {
-		log.Printf("error generate unique processed path: %s", err.Error())
-		return
+		return fmt.Errorf("error generate unique processed path: %s", err.Error())
 	}
+
 	size, err := converter.Convert(file.PathFull(), entities.ProcessedPathFull(sql.NullString{String: processedPath, Valid: true}, file.Format), PermFile)
 	if err != nil {
-		log.Printf("error convert: %s", err.Error())
-		return
+		return fmt.Errorf("error convert: %s", err.Error())
 	}
 
-	result = app.App().DB.Model(&entities.File{}).
-		Where("id = ?", file.ID).
-		Updates(map[string]interface{}{"processed_path": processedPath, "Status": entities.StatusProcessed, "size_processed": size})
-
-	if result.Error != nil {
-		log.Printf("failed to update processed_path")
-		return
+	err = c.repo.UpdateProcessed(file.ID, processedPath, size)
+	if err != nil {
+		return fmt.Errorf("failed to update processed_path")
 	}
 
-	log.Printf("Done")
+	err = c.repo.SetStatus(file.ID, entities.StatusProcessed)
+	if err != nil {
+		return fmt.Errorf("error set status")
+	}
+
+	log.Printf("done")
+	return nil
 }
 
 func (c *Converter) generateUniqueProcessedPath() (string, error) {
@@ -77,7 +87,7 @@ func (c *Converter) generateUniqueProcessedPath() (string, error) {
 		}
 
 		var exists bool
-		err = app.App().DB.Raw(
+		err = c.db.Raw(
 			"SELECT EXISTS(SELECT 1 FROM files WHERE processed_path = ?)",
 			randStr,
 		).Scan(&exists).Error

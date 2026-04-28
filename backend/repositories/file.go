@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"converter/entities"
+	"database/sql"
+	"fmt"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +19,49 @@ func NewFileRepository(db *gorm.DB) *FileRepository {
 
 func (r *FileRepository) CloseRepo() error {
 	return nil
+}
+
+func (r *FileRepository) UpdateError(fileID uint, details string) error {
+	tx := r.db.Begin(&sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	if tx.Error != nil {
+		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	}
+	defer tx.Rollback()
+
+	err := tx.Model(&entities.File{}).
+		Where("id = ?", fileID).
+		Updates(map[string]interface{}{"Status": entities.StatusError}).Error
+	if err != nil {
+		return err
+	}
+
+	errorModel := &entities.Error{
+		FileID:  fileID,
+		Details: details,
+	}
+	if err := tx.Create(errorModel).Error; err != nil {
+		return fmt.Errorf("error save error entity")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("commit failed: %w", err)
+	}
+
+	return nil
+}
+
+func (r *FileRepository) UpdateProcessed(fileID uint, processedPath string, size int64) error {
+	return r.db.Model(&entities.File{}).
+		Where("id = ?", fileID).
+		Updates(map[string]interface{}{"Status": entities.StatusProcessed, "processed_path": processedPath, "size_processed": size}).Error
+}
+
+func (r *FileRepository) SetStatus(fileId uint, status entities.FileStatus) error {
+	result := r.db.Model(&entities.File{}).
+		Where("id = ?", fileId).
+		Updates(map[string]interface{}{"Status": status})
+
+	return result.Error
 }
 
 func (r *FileRepository) GetFiles(guestId uint) ([]entities.File, error) {

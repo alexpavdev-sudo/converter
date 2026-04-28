@@ -50,6 +50,18 @@ func (r *CachedFileRepository) CloseRepo() error {
 	return nil
 }
 
+func (r *CachedFileRepository) UpdateProcessed(fileID uint, processedPath string, size int64) error {
+	return r.repo.UpdateProcessed(fileID, processedPath, size)
+}
+
+func (r *CachedFileRepository) UpdateError(fileID uint, msgErr string) error {
+	return r.repo.UpdateError(fileID, msgErr)
+}
+
+func (r *CachedFileRepository) SetStatus(fileId uint, status entities.FileStatus) error {
+	return r.repo.SetStatus(fileId, status)
+}
+
 func (r *CachedFileRepository) GetFiles(guestId uint) ([]entities.File, error) {
 	key := r.key(fmt.Sprintf("files:%d", guestId))
 	ctx := context.Background()

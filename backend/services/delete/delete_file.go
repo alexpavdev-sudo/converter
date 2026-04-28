@@ -22,14 +22,8 @@ func NewDeleteService(session sessions.Session) *DeleteService {
 }
 
 func (s *DeleteService) DeleteFile(guestId uint, fileId uint) error {
-	tx := app.App().StartTransaction()
-	if tx.Error != nil {
-		return tx.Error
-	}
-	defer tx.Rollback()
-
 	var file entities.File
-	err := tx.Model(&entities.File{}).
+	err := app.App().DB.Model(&entities.File{}).
 		Select("files.*").
 		Joins("INNER JOIN guest_files ON guest_files.file_id = files.id").
 		Where("guest_files.guest_id = ? AND guest_files.file_id = ?", guestId, fileId).
@@ -37,6 +31,23 @@ func (s *DeleteService) DeleteFile(guestId uint, fileId uint) error {
 	if err != nil {
 		return err
 	}
+
+	err = DeleteFile(file)
+	if err != nil {
+		return err
+	}
+
+	app.ClearCache(guestId)
+	return nil
+}
+
+func DeleteFile(file entities.File) error {
+	tx := app.App().StartTransaction()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer tx.Rollback()
+
 	if err := tx.Where("id = ?", file.ID).Delete(&file).Error; err != nil {
 		return err
 	}
@@ -56,6 +67,5 @@ func (s *DeleteService) DeleteFile(guestId uint, fileId uint) error {
 		return err
 	}
 
-	app.ClearCache(guestId)
 	return nil
 }

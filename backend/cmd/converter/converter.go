@@ -69,7 +69,10 @@ func main() {
 				break
 			}
 
-			converter.NewConverter(msg.FileID).Run()
+			err = converter.NewConverter(msg.FileID).Run()
+			if err != nil {
+				log.Printf(err.Error())
+			}
 
 			delivery.Ack(false)
 		}
