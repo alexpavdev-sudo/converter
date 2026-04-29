@@ -6,7 +6,7 @@
     </div>
 
     <div class="list-items">
-      <div v-for="image in images" :key="image.id" class="image-item">
+      <div v-for="image in files" :key="image.id" class="image-item">
         <!-- Превью -->
         <div class="preview">
           <img src="" :alt="image.original_name"/>
@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <div v-if="images.length === 0" class="empty-state">
+    <div v-if="files.length === 0" class="empty-state">
       <p>Нет сконвертированных изображений</p>
       <p class="hint">
         <router-link to="/converter-images">➡️ Загрузите изображения для конвертации</router-link>
@@ -76,7 +76,7 @@ import type {File} from '@/types/file'
 import api from '@/services/api';
 
 const props = defineProps<{
-  images: File[]
+  files: File[]
 }>()
 
 const emit = defineEmits(['remove', 'download', 'update-format'])

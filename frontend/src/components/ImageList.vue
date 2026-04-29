@@ -2,11 +2,11 @@
 <template>
   <div class="image-list">
     <div class="list-header">
-      <h3>📋 Загруженные изображения ({{ images.length }})</h3>
+      <h3>📋 Загруженные изображения ({{ files.length }})</h3>
     </div>
 
     <div class="list-items">
-      <div v-for="image in images" :key="image.id" class="image-item">
+      <div v-for="image in files" :key="image.id" class="image-item">
         <!-- Превью -->
         <div class="preview">
           <img src="" :alt="image.original_name"/>
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div v-if="images.length === 0" class="empty-state">
+    <div v-if="files.length === 0" class="empty-state">
       <p>Нет загруженных изображений</p>
       <p class="hint">Загрузите изображения для конвертации</p>
     </div>
@@ -50,7 +50,7 @@ import type {File} from '@/types/file';
 import type {Format} from '@/types/format';
 
 const props = defineProps<{
-  images: File[]
+  files: File[]
   formats: Format[]
 }>()
 

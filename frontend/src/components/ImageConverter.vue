@@ -10,7 +10,7 @@
         <input type="file"
                ref="fileInput"
                multiple
-               accept="image/*"
+               accept="image/*, video/*"
                @change="handleFileSelect"
                style="display: none"/>
 
@@ -19,7 +19,7 @@
         </button>
 
         <button @click="handleAddMore" class="btn btn-secondary"
-                v-if="images.length > 0">
+                v-if="uploadFiles.length > 0">
           ➕ Добавить ещё
         </button>
 
@@ -29,18 +29,18 @@
 
     <!-- Список изображений -->
     <ImageList
-        :images="images"
+        :files="uploadFiles"
         :formats="formats"
         @remove="removeImage"
         @update-format="updateFormat"
     />
 
     <!-- Кнопка конвертации -->
-    <div class="actions" v-if="images.length > 0">
+    <div class="actions" v-if="uploadFiles.length > 0">
       <button @click="convertAll" class="btn btn-success btn-large">
         <span v-if="!isLoading">🔄 Конвертировать</span>
         <span v-else>⏳ Загрузка...</span>
-        ({{ images.length }} файлов)
+        ({{ uploadFiles.length }} файлов)
       </button>
     </div>
   </div>
@@ -57,7 +57,7 @@ const router = useRouter()
 const fileInput = ref(null)
 const isDragging = ref(false)
 const isLoading = ref(false)
-const images = ref([])
+const uploadFiles = ref([])
 const formats = ref<Format[]>([]);
 
 onActivated(async () => {
@@ -90,13 +90,15 @@ const handleDrop = (event) => {
 
 // Добавление файлов в список
 const addFiles = (newFiles) => {
-  const imageFiles = newFiles.filter(file => file.type.startsWith('image/'))
+  const files = newFiles.filter(
+      file => (file.type.startsWith('image/') || file.type.startsWith('video/'))
+  )
 
-  imageFiles.forEach(file => {
+  files.forEach(file => {
     // Проверка на дубликаты
-    if (!images.value.some(img => img.name === file.name && img.size === file.size)) {
-      images.value.push({
-        id: images.value.length + 1,
+    if (!uploadFiles.value.some(img => img.name === file.name && img.size === file.size)) {
+      uploadFiles.value.push({
+        id: uploadFiles.value.length + 1,
         file: file,
         original_name: file.name,
         size: file.size,
@@ -122,15 +124,15 @@ const handleAddMore = () => {
 
 // Удаление изображения
 const removeImage = (id) => {
-  const index = images.value.findIndex(img => img.id === id)
+  const index = uploadFiles.value.findIndex(img => img.id === id)
   if (index !== -1) {
-    images.value.splice(index, 1)
+    uploadFiles.value.splice(index, 1)
   }
 }
 
 // Обновление формата конвертации
 const updateFormat = (id, format) => {
-  const image = images.value.find(img => img.id === id)
+  const image = uploadFiles.value.find(img => img.id === id)
   if (image) {
     image.format = format
   }
@@ -142,7 +144,7 @@ const convertAll = async () => {
     isLoading.value = true
 
     const formData = new FormData()
-    images.value.forEach(img => {
+    uploadFiles.value.forEach(img => {
       formData.append('formats', img.format)
       formData.append('images', img.file)
     })
@@ -152,7 +154,7 @@ const convertAll = async () => {
         'Content-Type': 'multipart/form-data',
       }
     });
-    images.value = []
+    uploadFiles.value = []
     isLoading.value = false
   } catch (error) {
     console.error('Произошла ошибка при отправке файлов:', error)
