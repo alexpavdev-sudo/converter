@@ -16,7 +16,7 @@ type SessionConfig struct {
 	SessionName string
 }
 
-func GetSessionConfig() (*SessionConfig, error) {
+func getSessionConfig() (*SessionConfig, error) {
 	authKey, err := base64.StdEncoding.DecodeString(os.Getenv("SESSION_AUTH_KEY"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid SESSION_AUTH_KEY base64: %w", err)

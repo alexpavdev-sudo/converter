@@ -3,7 +3,10 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
+	"sync"
+	"time"
 )
 
 const UploadDir = "/home/appuser/files"
@@ -19,13 +22,58 @@ const CleanupInterval = 300
 
 const MaxSize = 300 * 1024 * 1024
 const MaxSizeFile = 250 * 1024 * 1024
+const CacheTTL = 10 * time.Minute
+
+var (
+	instance *Config
+	once     sync.Once
+)
 
 type BaseConfig struct {
 	CsrfKey []byte
 	DbUrl   string
 }
 
-func GetBaseConfig(isConsole bool) (*BaseConfig, error) {
+type Config struct {
+	BaseConfig    *BaseConfig
+	SessionConfig *SessionConfig
+	RedisConfig   *RedisConfig
+}
+
+func GetConfig() *Config {
+	if instance == nil {
+		panic("Config not initialized")
+	}
+	return instance
+}
+
+func Init(isConsole bool) {
+	once.Do(func() {
+		baseCfg, err := getBaseConfig(isConsole)
+		if err != nil {
+			log.Fatal("Config error:", err)
+		}
+
+		var sessionCfg *SessionConfig
+		if !isConsole {
+			sessionCfg, err = getSessionConfig()
+			if err != nil {
+				log.Fatal("Config error:", err)
+			}
+		}
+		redisCfg, err := getRedisConfig()
+		if err != nil {
+			log.Fatal("Config error:", err)
+		}
+		instance = &Config{
+			BaseConfig:    baseCfg,
+			SessionConfig: sessionCfg,
+			RedisConfig:   redisCfg,
+		}
+	})
+}
+
+func getBaseConfig(isConsole bool) (*BaseConfig, error) {
 	var csrfKey []byte
 	if !isConsole {
 		var err error

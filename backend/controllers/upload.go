@@ -3,7 +3,7 @@ package controllers
 import (
 	"converter/app"
 	"converter/config"
-	"converter/dto"
+	"converter/dto/web"
 	"converter/entities"
 	"converter/helpers"
 	deleteFile "converter/services/delete"
@@ -60,7 +60,7 @@ func GetFiles(c *gin.Context) {
 			app.Fail(c, 500, "1", err.Error())
 			return
 		}
-		app.OK(c, dto.FileToDTO().MapSlice(files))
+		app.OK(c, web.FileToDTO().MapSlice(files))
 	}
 }
 
@@ -71,7 +71,7 @@ func GetFile(c *gin.Context) {
 		return
 	}
 
-	app.OK(c, dto.FileToDTO().Map(*file))
+	app.OK(c, web.FileToDTO().Map(*file))
 }
 
 func findFile(c *gin.Context) (*entities.File, error) {
@@ -123,7 +123,7 @@ func DownloadFile(c *gin.Context) {
 	}
 
 	if file.Status != entities.StatusProcessed {
-		app.Fail(c, 404, "1", "File not processed")
+		app.Fail(c, 404, "1", "FileDto not processed")
 		return
 	}
 

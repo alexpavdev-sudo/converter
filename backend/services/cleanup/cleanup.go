@@ -3,8 +3,10 @@ package cleanup
 import (
 	"context"
 	"converter/app"
+	"converter/components/cache"
 	"converter/config"
 	"converter/entities"
+	"converter/repositories"
 	deleteFile "converter/services/delete"
 	"log"
 	"os"
@@ -93,8 +95,16 @@ func cleanGuest(guest entities.Guest, duration time.Duration) {
 			log.Println("Ошибка удаления файла:", err)
 		}
 	}
-	app.ClearCache(guest.ID)
+	clearCache(guest.ID)
 	deleteGuest(guest)
+}
+
+func clearCache(guestId uint) {
+	cache, err := cache.CachedFactory{}.Create()
+	tag := repositories.CachedFileRepository{}.TagGuest(guestId)
+	if err == nil {
+		_ = cache.DeleteByTag([]string{tag})
+	}
 }
 
 func deleteGuest(guest entities.Guest) {

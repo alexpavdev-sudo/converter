@@ -33,16 +33,20 @@ func (c *Converter) Run() error {
 		return fmt.Errorf("failed to create directory")
 	}
 
-	//todo проверть статус
 	file, err := c.repo.GetFileById(c.fileId)
 	if err != nil {
 		return fmt.Errorf("error db: %s", err.Error())
 	}
+	if file.Status != entities.StatusQueued {
+		return fmt.Errorf("error status: %s", file.Status.String())
+	}
 
 	err = c.repo.SetStatus(file.ID, entities.StatusProcessing)
 	defer func() {
-		if err != nil {
-			c.repo.SetStatusError(file.ID, err.Error())
+		if r := recover(); r != nil {
+			_ = c.repo.SetStatusError(file.ID, fmt.Sprintf("panic: %v", r))
+		} else if err != nil {
+			_ = c.repo.SetStatusError(file.ID, err.Error())
 		}
 	}()
 	if err != nil {

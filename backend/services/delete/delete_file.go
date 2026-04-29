@@ -2,20 +2,14 @@ package delete
 
 import (
 	"converter/app"
+	"converter/components/cache"
 	"converter/entities"
 	"converter/helpers"
-	"gorm.io/gorm"
+	"converter/repositories"
 	"os"
 )
 
 type DeleteService struct {
-	db *gorm.DB
-}
-
-func NewDeleteService() *DeleteService {
-	return &DeleteService{
-		db: app.App().DB,
-	}
 }
 
 func DeleteFile(file entities.File) error {
@@ -43,7 +37,15 @@ func DeleteFile(file entities.File) error {
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}
-	//todo cache
+	clearCache()
 
 	return nil
+}
+
+func clearCache() {
+	cache, err := cache.CachedFactory{}.Create()
+	tag := repositories.CachedFileRepository{}.TagAll()
+	if err == nil {
+		_ = cache.DeleteByTag([]string{tag})
+	}
 }

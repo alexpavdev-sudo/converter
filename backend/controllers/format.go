@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"converter/app"
-	"converter/services/formater"
+	"converter/components/formater"
 	"github.com/gin-gonic/gin"
 )
 

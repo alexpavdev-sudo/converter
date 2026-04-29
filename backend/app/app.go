@@ -3,7 +3,7 @@ package app
 import (
 	"converter/components/session"
 	"converter/config"
-	"converter/dto"
+	"converter/dto/web"
 	"converter/repositories"
 	"database/sql"
 	"github.com/gin-contrib/sessions"
@@ -23,15 +23,9 @@ var (
 	once     sync.Once
 )
 
-type Config struct {
-	BaseConfig    *config.BaseConfig
-	SessionConfig *config.SessionConfig
-	RedisConfig   *config.RedisConfig
-}
-
 type Application struct {
 	isConsole    bool
-	Config       Config
+	Config       *config.Config
 	SessionStore *sessions.Store
 	DB           *gorm.DB
 	FileRepo     repositories.FileRepositoryInterface
@@ -46,7 +40,8 @@ func App() *Application {
 
 func Init(isConsole bool) {
 	once.Do(func() {
-		cfg := getConfig(isConsole)
+		config.Init(isConsole)
+		cfg := config.GetConfig()
 		db := openDB(cfg.BaseConfig.DbUrl)
 
 		var sessionStore *sessions.Store
@@ -64,18 +59,8 @@ func Init(isConsole bool) {
 	})
 }
 
-func ClearCache(guestID uint) {
-	//todo
-	if repo, ok := App().FileRepo.(*repositories.CachedFileRepository); ok {
-		err := repo.InvalidateGuest(guestID)
-		if err != nil {
-			log.Printf("failed to invalidate cache guest: %v", err)
-		}
-	}
-}
-
-func getCacheFileRepo(db *gorm.DB, cfg *config.RedisConfig) repositories.FileRepositoryInterface {
-	repo, err := repositories.NewCachedFileRepository(db, cfg.RedisAddr, cfg.RedisAddr, 10*time.Minute)
+func getCacheFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
+	repo, err := repositories.NewCachedFileRepository(db)
 	if err != nil {
 		log.Fatal("Config error:", err)
 	}
@@ -84,30 +69,6 @@ func getCacheFileRepo(db *gorm.DB, cfg *config.RedisConfig) repositories.FileRep
 
 func getFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
 	return repositories.NewFileRepository(db)
-}
-
-func getConfig(isConsole bool) Config {
-	baseCfg, err := config.GetBaseConfig(isConsole)
-	if err != nil {
-		log.Fatal("Config error:", err)
-	}
-
-	var sessionCfg *config.SessionConfig
-	if !isConsole {
-		sessionCfg, err = config.GetSessionConfig()
-		if err != nil {
-			log.Fatal("Config error:", err)
-		}
-	}
-	redisCfg, err := config.GetRedisConfig()
-	if err != nil {
-		log.Fatal("Config error:", err)
-	}
-	return Config{
-		BaseConfig:    baseCfg,
-		SessionConfig: sessionCfg,
-		RedisConfig:   redisCfg,
-	}
 }
 
 func openDB(DbUrl string) *gorm.DB {
@@ -150,15 +111,15 @@ func (app *Application) StartTransaction() *gorm.DB {
 }
 
 func OK(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, dto.Response{
+	c.JSON(http.StatusOK, web.ResponseDto{
 		Success: true,
 		Data:    data,
 	})
 }
 
 func Fail(c *gin.Context, status int, code, message string) {
-	c.JSON(status, dto.Response{
+	c.JSON(status, web.ResponseDto{
 		Success: false,
-		Error:   &dto.ErrorInfo{Code: code, Message: message},
+		Error:   &web.ErrorInfoDto{Code: code, Message: message},
 	})
 }

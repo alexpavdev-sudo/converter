@@ -9,7 +9,7 @@ type RedisConfig struct {
 	RedisPassword string
 }
 
-func GetRedisConfig() (*RedisConfig, error) {
+func getRedisConfig() (*RedisConfig, error) {
 	return &RedisConfig{
 		RedisAddr:     os.Getenv("REDIS_ADDR"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),

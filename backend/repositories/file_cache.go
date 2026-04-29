@@ -1,53 +1,31 @@
 package repositories
 
 import (
-	"context"
+	"converter/components/cache"
 	"converter/entities"
 	"fmt"
-	"github.com/eko/gocache/lib/v4/cache"
-	"github.com/eko/gocache/lib/v4/marshaler"
-	"github.com/eko/gocache/lib/v4/store"
-	redisStore "github.com/eko/gocache/store/redis/v4"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log"
-	"time"
 )
 
 type CachedFileRepository struct {
-	repo        *FileRepository
-	marsh       *marshaler.Marshaler
-	cache       *cache.Cache[any]
-	ttl         time.Duration
-	redisClient *redis.Client
+	repo  *FileRepository
+	cache cache.Cache
 }
 
-func NewCachedFileRepository(db *gorm.DB, redisAddr string, redisPassword string, ttl time.Duration) (*CachedFileRepository, error) {
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
-		Password: redisPassword,
-		DB:       1,
-	})
-
-	redisStore := redisStore.NewRedis(redisClient, store.WithExpiration(ttl))
-	cacheManager := cache.New[any](redisStore)
-	marsh := marshaler.New(cacheManager)
-
+func NewCachedFileRepository(db *gorm.DB) (*CachedFileRepository, error) {
+	cache, err := cache.CachedFactory{}.Create()
+	if err != nil {
+		return nil, err
+	}
 	return &CachedFileRepository{
-		repo:        NewFileRepository(db),
-		marsh:       marsh,
-		cache:       cacheManager,
-		ttl:         ttl,
-		redisClient: redisClient,
+		repo:  NewFileRepository(db),
+		cache: cache,
 	}, nil
 }
 
 func (r *CachedFileRepository) CloseRepo() error {
-	err := r.redisClient.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.cache.Close()
 }
 
 func (r *CachedFileRepository) SetProcessedPath(fileID uint, processedPath string) error {
@@ -67,11 +45,10 @@ func (r *CachedFileRepository) SetStatus(fileId uint, status entities.FileStatus
 }
 
 func (r *CachedFileRepository) GetFiles(guestId uint) ([]entities.File, error) {
-	key := r.key(fmt.Sprintf("files:%d", guestId))
-	ctx := context.Background()
+	key := r.Key(fmt.Sprintf("files:%d", guestId))
 
 	var files []entities.File
-	_, err := r.marsh.Get(ctx, key, &files)
+	err := r.cache.Get(key, &files)
 	if err == nil {
 		return files, nil
 	}
@@ -81,10 +58,10 @@ func (r *CachedFileRepository) GetFiles(guestId uint) ([]entities.File, error) {
 		return nil, err
 	}
 
-	if err := r.marsh.Set(ctx, key, files, store.WithTags([]string{
-		r.tagGuest(guestId),
-		r.tagAll(),
-	})); err != nil {
+	if err := r.cache.Set(key, files, []string{
+		r.TagGuest(guestId),
+		r.TagAll(),
+	}); err != nil {
 		log.Printf("failed to set cache: %v", err)
 	}
 
@@ -92,11 +69,10 @@ func (r *CachedFileRepository) GetFiles(guestId uint) ([]entities.File, error) {
 }
 
 func (r *CachedFileRepository) GetCountFiles(guestId uint) (int64, error) {
-	key := r.key(fmt.Sprintf("countFiles:%d", guestId))
-	ctx := context.Background()
+	key := r.Key(fmt.Sprintf("countFiles:%d", guestId))
 
 	var count int64
-	_, err := r.marsh.Get(ctx, key, &count)
+	err := r.cache.Get(key, &count)
 	if err == nil {
 		return count, nil
 	}
@@ -106,10 +82,10 @@ func (r *CachedFileRepository) GetCountFiles(guestId uint) (int64, error) {
 		return 0, err
 	}
 
-	if err := r.marsh.Set(ctx, key, count, store.WithTags([]string{
-		r.tagGuest(guestId),
-		r.tagAll(),
-	})); err != nil {
+	if err := r.cache.Set(key, count, []string{
+		r.TagGuest(guestId),
+		r.TagAll(),
+	}); err != nil {
 		log.Printf("failed to set cache: %v", err)
 	}
 
@@ -117,11 +93,10 @@ func (r *CachedFileRepository) GetCountFiles(guestId uint) (int64, error) {
 }
 
 func (r *CachedFileRepository) GetFile(guestId uint, fileId uint) (entities.File, error) {
-	key := r.key(fmt.Sprintf("file:guest:%d:file:%d", guestId, fileId))
-	ctx := context.Background()
+	key := r.Key(fmt.Sprintf("file:guest:%d:file:%d", guestId, fileId))
 
 	var file entities.File
-	_, err := r.marsh.Get(ctx, key, &file)
+	err := r.cache.Get(key, &file)
 	if err == nil && file.ID != 0 {
 		return file, nil
 	}
@@ -132,10 +107,10 @@ func (r *CachedFileRepository) GetFile(guestId uint, fileId uint) (entities.File
 	}
 
 	if file.ID != 0 {
-		if err := r.marsh.Set(ctx, key, file, store.WithTags([]string{
-			r.tagGuest(guestId),
-			r.tagAll(),
-		})); err != nil {
+		if err := r.cache.Set(key, file, []string{
+			r.TagGuest(guestId),
+			r.TagAll(),
+		}); err != nil {
 			log.Printf("failed to set cache: %v", err)
 		}
 	}
@@ -144,11 +119,10 @@ func (r *CachedFileRepository) GetFile(guestId uint, fileId uint) (entities.File
 }
 
 func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
-	key := r.keyFile(fileId)
-	ctx := context.Background()
+	key := r.Key(fmt.Sprintf("fileById:%d", fileId))
 
 	var file entities.File
-	_, err := r.marsh.Get(ctx, key, &file)
+	err := r.cache.Get(key, &file)
 	if err == nil && file.ID != 0 {
 		return file, nil
 	}
@@ -159,9 +133,9 @@ func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
 	}
 
 	if file.ID != 0 {
-		if err := r.marsh.Set(ctx, key, file, store.WithTags([]string{
-			r.tagAll(),
-		})); err != nil {
+		if err := r.cache.Set(key, file, []string{
+			r.TagAll(),
+		}); err != nil {
 			log.Printf("failed to set cache: %v", err)
 		}
 	}
@@ -169,33 +143,14 @@ func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
 	return file, nil
 }
 
-func (r *CachedFileRepository) key(k string) string {
+func (r CachedFileRepository) Key(k string) string {
 	return fmt.Sprintf("file:repo:%s", k)
 }
 
-func (r *CachedFileRepository) tagAll() string {
-	return r.key("all")
+func (r CachedFileRepository) TagAll() string {
+	return r.Key("all")
 }
 
-func (r *CachedFileRepository) tagGuest(guestId uint) string {
-	return r.key(fmt.Sprintf("guest:%d", guestId))
-}
-
-func (r *CachedFileRepository) keyFile(fileId uint) string {
-	return r.key(fmt.Sprintf("file:%d", fileId))
-}
-
-func (r *CachedFileRepository) InvalidateGuest(guestId uint) error {
-	ctx := context.Background()
-
-	return r.marsh.Invalidate(ctx, store.WithInvalidateTags([]string{
-		r.tagGuest(guestId),
-	}))
-}
-
-func (r *CachedFileRepository) InvalidateAll() error {
-	ctx := context.Background()
-	return r.marsh.Invalidate(ctx, store.WithInvalidateTags([]string{
-		r.tagAll(),
-	}))
+func (r CachedFileRepository) TagGuest(guestId uint) string {
+	return r.Key(fmt.Sprintf("guest:%d", guestId))
 }

@@ -3,8 +3,11 @@ package uploader
 import (
 	"context"
 	"converter/app"
+	"converter/components/cache"
+	"converter/dto/inner"
 	"converter/entities"
 	"converter/helpers"
+	"converter/repositories"
 	"converter/services/user"
 	"database/sql"
 	"encoding/json"
@@ -186,21 +189,25 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 		if err := tx.Commit().Error; err != nil {
 			return nil, fmt.Errorf("commit failed: %w", err)
 		}
-		app.ClearCache(guestID)
+		clearCache(guestID)
 		sendConversion(fileRecord.ID)
 	}
 	needRemoveOnExit = false
 	return fileRecord, nil
 }
 
+func clearCache(guestId uint) {
+	cache, err := cache.CachedFactory{}.Create()
+	tag := repositories.CachedFileRepository{}.TagGuest(guestId)
+	if err == nil {
+		_ = cache.DeleteByTag([]string{tag})
+	}
+}
+
 func exit(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
-}
-
-type Message struct {
-	FileID uint `json:"file_id"`
 }
 
 func sendConversion(fileId uint) {
@@ -227,7 +234,7 @@ func sendConversion(fileId uint) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body, err := json.Marshal(&Message{FileID: fileId})
+	body, err := json.Marshal(&inner.MessageDto{FileID: fileId})
 	if err != nil {
 		log.Printf("error: %s", err)
 	}

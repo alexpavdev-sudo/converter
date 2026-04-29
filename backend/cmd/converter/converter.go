@@ -2,8 +2,8 @@ package main
 
 import (
 	"converter/app"
+	"converter/dto/inner"
 	"converter/services/converter"
-	"converter/services/uploader"
 	"encoding/json"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
@@ -63,7 +63,7 @@ func main() {
 	go func() {
 		for d := range deliveries {
 			go func(delivery amqp.Delivery) {
-				var msg uploader.Message
+				var msg inner.MessageDto
 				err := json.Unmarshal(delivery.Body, &msg)
 				if err != nil {
 					log.Printf("error: %s", err)

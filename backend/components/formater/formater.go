@@ -41,6 +41,7 @@ var conversionMap = map[string][]string{
 	"txt":  {"pdf", "doc", "docx"},
 
 	"jpg":  {"png", "webp", "gif"},
+	"jpeg": {"png", "webp", "gif"},
 	"png":  {"jpg", "webp", "gif"},
 	"gif":  {"jpg", "png", "webp"},
 	"webp": {"jpg", "png", "gif"},
@@ -95,8 +96,8 @@ func (s *FormatService) GetPossibleConversions(fromExt string) ([]Format, error)
 }
 
 func (s *FormatService) CanConvert(fromExt, toExt string) bool {
-	fromExt = strings.ToLower(strings.TrimPrefix(fromExt, "."))
-	toExt = strings.ToLower(strings.TrimPrefix(toExt, "."))
+	fromExt = strings.ToLower(fromExt)
+	toExt = strings.ToLower(toExt)
 
 	targets, ok := conversionMap[fromExt]
 	if !ok {
