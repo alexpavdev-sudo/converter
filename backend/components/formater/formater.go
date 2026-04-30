@@ -21,17 +21,17 @@ type Format struct {
 }
 
 var formats = map[string]Format{
-	"pdf":  {Ext: "pdf", Category: CategoryDocument, Name: "PDF Document", MimeType: "application/pdf"},
-	"doc":  {Ext: "doc", Category: CategoryDocument, Name: "Word Document", MimeType: "application/msword"},
-	"docx": {Ext: "docx", Category: CategoryDocument, Name: "Word Document", MimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-	"txt":  {Ext: "txt", Category: CategoryDocument, Name: "Text File", MimeType: "text/plain"},
-	"jpg":  {Ext: "jpg", Category: CategoryImage, Name: "JPEG Image", MimeType: "image/jpeg"},
-	"png":  {Ext: "png", Category: CategoryImage, Name: "PNG Image", MimeType: "image/png"},
-	"gif":  {Ext: "gif", Category: CategoryImage, Name: "GIF Image", MimeType: "image/gif"},
+	//"pdf":  {Ext: "pdf", Category: CategoryDocument, Name: "PDF Document", MimeType: "application/pdf"},
+	//"doc":  {Ext: "doc", Category: CategoryDocument, Name: "Word Document", MimeType: "application/msword"},
+	//"docx": {Ext: "docx", Category: CategoryDocument, Name: "Word Document", MimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+	//"txt":  {Ext: "txt", Category: CategoryDocument, Name: "Text File", MimeType: "text/plain"},
+	"jpg": {Ext: "jpg", Category: CategoryImage, Name: "JPEG Image", MimeType: "image/jpeg"},
+	"png": {Ext: "png", Category: CategoryImage, Name: "PNG Image", MimeType: "image/png"},
+	//"gif":  {Ext: "gif", Category: CategoryImage, Name: "GIF Image", MimeType: "image/gif"},
 	"webp": {Ext: "webp", Category: CategoryImage, Name: "WebP Image", MimeType: "image/webp"},
 	"mp4":  {Ext: "mp4", Category: CategoryVideo, Name: "MP4 Video", MimeType: "video/mp4"},
 	"avi":  {Ext: "avi", Category: CategoryVideo, Name: "AVI Video", MimeType: "video/x-msvideo"},
-	"mov":  {Ext: "mov", Category: CategoryVideo, Name: "QuickTime Video", MimeType: "video/quicktime"},
+	//"mov":  {Ext: "mov", Category: CategoryVideo, Name: "QuickTime Video", MimeType: "video/quicktime"},
 }
 
 var conversionMap = map[string][]string{

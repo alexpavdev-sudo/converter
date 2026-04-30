@@ -20,6 +20,7 @@ FROM alpine:latest AS prod
 ARG GID=1000
 ARG UID=1000
 RUN apk --no-cache add ca-certificates
+RUN apk add --no-cache tzdata
 RUN addgroup -g ${GID} appgroup && \
     adduser -D -u ${UID} -G appgroup appuser
 WORKDIR /home/appuser/app

@@ -15,10 +15,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type FileRequest struct {
-	ID uint `uri:"id" binding:"required,min=1"`
-}
-
 func Upload(c *gin.Context) {
 	reader, err := c.Request.MultipartReader()
 	if err != nil {
@@ -75,7 +71,7 @@ func GetFile(c *gin.Context) {
 }
 
 func findFile(c *gin.Context) (*entities.File, error) {
-	var req FileRequest
+	var req web.FileRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		return nil, err
 	}

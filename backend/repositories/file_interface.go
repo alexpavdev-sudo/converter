@@ -16,5 +16,7 @@ type FileRepositoryInterface interface {
 	SetStatusProcessed(fileID uint, size int64) error
 	SetStatusError(fileID uint, msgErr string) error
 
+	ExistFile(fileID uint) (bool, error)
+
 	CloseRepo() error
 }

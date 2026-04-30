@@ -2,7 +2,7 @@ package converter
 
 import (
 	"converter/app"
-	"converter/components/converters"
+	"converter/components/converters/factory"
 	"converter/config"
 	"converter/entities"
 	"converter/helpers"
@@ -53,33 +53,40 @@ func (c *Converter) Run() error {
 		return fmt.Errorf("error set status")
 	}
 
-	converter, err := converters.Factory{}.Create(file)
-	if err != nil {
-		return fmt.Errorf("error factory converter: %s", err.Error())
-	}
-
 	processedPath, err := c.generateUniqueProcessedPath()
 	if err != nil {
 		return fmt.Errorf("error generate unique processed path: %s", err.Error())
 	}
 	err = c.repo.SetProcessedPath(file.ID, processedPath)
 	if err != nil {
-		return fmt.Errorf("failed to update processed_path")
+		return fmt.Errorf("error: failed to update processed_path")
 	}
 
-	size, err := converter.Convert(file.PathFull(), entities.ProcessedPathFull(sql.NullString{String: processedPath, Valid: true}, file.Format), PermFile)
+	outputPath := entities.ProcessedPathFull(sql.NullString{String: processedPath, Valid: true}, file.Format)
+	converter, err := factory.Factory{}.Create(file, outputPath)
+	if err != nil {
+		return fmt.Errorf("error factory converter: %s", err.Error())
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = converter.Rollback()
+		} else if err != nil {
+			_ = converter.Rollback()
+		}
+	}()
+	size, err := converter.Convert(file, PermFile)
 	if err != nil {
 		return fmt.Errorf("error convert: %s", err.Error())
 	}
 
 	err = c.repo.SetStatusProcessed(file.ID, size)
 	if err != nil {
-		return fmt.Errorf("failed to update status processed")
+		return fmt.Errorf("error: failed to update status processed")
 	}
-
-	err = c.repo.SetStatus(file.ID, entities.StatusProcessed)
-	if err != nil {
-		return fmt.Errorf("error set status")
+	exist, _ := c.repo.ExistFile(file.ID)
+	if !exist {
+		err = fmt.Errorf("error: the file %d has been deleted", file.ID)
+		return err
 	}
 
 	log.Printf("done: %d", c.fileId)

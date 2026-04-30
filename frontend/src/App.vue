@@ -4,7 +4,7 @@
       <div class="container header-container">
         <router-link to="/" class="logo">Converter</router-link>
         <nav class="nav-menu">
-          <router-link to="/converter-images" class="nav-link">Конвертер изображений</router-link>
+          <router-link to="/converter-images" class="nav-link">Конвертер файлов</router-link>
           <router-link to="/download" class="nav-link">Мои файлы</router-link>
           <router-link to="/contact" class="nav-link">Контакты</router-link>
         </nav>

@@ -1,6 +1,8 @@
 package image
 
 import (
+	"converter/components/converters"
+	"converter/entities"
 	"fmt"
 	"image"
 	"image/draw"
@@ -11,15 +13,26 @@ import (
 )
 
 type PNG2JPGHandler struct {
+	converters.BaseConverter
+	outputPath string
 }
 
-func NewPNG2JPGHandler() *PNG2JPGHandler {
-	return &PNG2JPGHandler{}
+func NewPNG2JPGHandler(outputPath string) *PNG2JPGHandler {
+	return &PNG2JPGHandler{outputPath: outputPath}
 }
 
-func (h *PNG2JPGHandler) Convert(inputPath, outputPath string, perm fs.FileMode) (int64, error) {
+func (h *PNG2JPGHandler) GetOutputPath() string {
+	return h.outputPath
+}
+
+func (h *PNG2JPGHandler) Rollback() error {
+	return converters.BaseConverter{}.Rollback(h.GetOutputPath())
+}
+
+func (h *PNG2JPGHandler) Convert(file entities.File, perm fs.FileMode) (int64, error) {
 	var size int64 = 0
 	quality := 80
+	inputPath := file.PathFull()
 
 	fileIn, err := os.Open(inputPath)
 	if err != nil {
@@ -32,7 +45,7 @@ func (h *PNG2JPGHandler) Convert(inputPath, outputPath string, perm fs.FileMode)
 		return size, err
 	}
 
-	outputFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
+	outputFile, err := os.OpenFile(h.GetOutputPath(), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
 	if err != nil {
 		return size, err
 	}

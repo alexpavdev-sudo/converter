@@ -1,6 +1,8 @@
 package image
 
 import (
+	"converter/components/converters"
+	"converter/entities"
 	"fmt"
 	"github.com/chai2010/webp"
 	"image"
@@ -11,15 +13,26 @@ import (
 )
 
 type Webp2JPGHandler struct {
+	converters.BaseConverter
+	outputPath string
 }
 
-func NewWebp2JPGHandler() *Webp2JPGHandler {
-	return &Webp2JPGHandler{}
+func NewWebp2JPGHandler(outputPath string) *Webp2JPGHandler {
+	return &Webp2JPGHandler{outputPath: outputPath}
 }
 
-func (h *Webp2JPGHandler) Convert(inputPath, outputPath string, perm fs.FileMode) (int64, error) {
+func (h *Webp2JPGHandler) GetOutputPath() string {
+	return h.outputPath
+}
+
+func (h *Webp2JPGHandler) Rollback() error {
+	return converters.BaseConverter{}.Rollback(h.GetOutputPath())
+}
+
+func (h *Webp2JPGHandler) Convert(file entities.File, perm fs.FileMode) (int64, error) {
 	var size int64 = 0
 	quality := 80
+	inputPath := file.PathFull()
 
 	fileIn, err := os.Open(inputPath)
 	if err != nil {
@@ -33,7 +46,7 @@ func (h *Webp2JPGHandler) Convert(inputPath, outputPath string, perm fs.FileMode
 		return size, err
 	}
 
-	outputFile, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
+	outputFile, err := os.OpenFile(h.GetOutputPath(), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
 	if err != nil {
 		return size, err
 	}

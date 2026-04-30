@@ -1,11 +1,10 @@
 import {createRouter, createWebHistory} from 'vue-router'
-import Home from '@/pages/Home.vue'
 import Contact from '@/pages/Contact.vue'
 import ConverterView from '@/pages/ConverterView.vue'
 import DownloadView from '@/pages/DownloadView.vue'
 
 const routes = [
-    {path: '/', name: 'Home', component: Home},
+    {path: '/', name: 'Home', component: ConverterView},
     {path: '/contact', name: 'Contact', component: Contact},
     {
         path: '/converter-images',

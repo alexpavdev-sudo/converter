@@ -143,6 +143,10 @@ func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
 	return file, nil
 }
 
+func (r *CachedFileRepository) ExistFile(fileID uint) (bool, error) {
+	return r.repo.ExistFile(fileID)
+}
+
 func (r CachedFileRepository) Key(k string) string {
 	return fmt.Sprintf("file:repo:%s", k)
 }

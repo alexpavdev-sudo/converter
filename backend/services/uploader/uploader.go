@@ -4,6 +4,7 @@ import (
 	"context"
 	"converter/app"
 	"converter/components/cache"
+	"converter/config"
 	"converter/dto/inner"
 	"converter/entities"
 	"converter/helpers"
@@ -48,6 +49,11 @@ func NewStreamFileUploader(reader *multipart.Reader, maxFileSize int64, maxSize 
 }
 
 func (u *StreamFileUploader) Upload() error {
+	err := u.checkAccess()
+	if err != nil {
+		return err
+	}
+
 	var formats []string
 
 	for {
@@ -96,6 +102,30 @@ func (u *StreamFileUploader) Upload() error {
 		return fmt.Errorf("no files uploaded")
 	}
 
+	return nil
+}
+
+func (u *StreamFileUploader) checkAccess() error {
+	if u.userService.IsAuthenticated() {
+	} else {
+		guestId, err := u.userService.GuestId()
+		if err != nil {
+			return err
+		}
+
+		var count int64
+		err = u.db.Model(&entities.File{}).
+			Joins("INNER JOIN guest_files ON guest_files.file_id = files.id").
+			Where("guest_files.guest_id = ?", guestId).
+			Where("files.status IN (?)", []entities.FileStatus{entities.StatusQueued, entities.StatusProcessing}).
+			Count(&count).Error
+		if err != nil {
+			return err
+		}
+		if count >= config.ProcessingFilesMaxCount {
+			return fmt.Errorf("исчерпан лимит одновременной обработки файлов: максимально до %d", config.ProcessingFilesMaxCount)
+		}
+	}
 	return nil
 }
 

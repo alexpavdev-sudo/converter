@@ -24,6 +24,8 @@ const MaxSize = 300 * 1024 * 1024
 const MaxSizeFile = 250 * 1024 * 1024
 const CacheTTL = 10 * time.Minute
 
+const ProcessingFilesMaxCount int64 = 2
+
 var (
 	instance *Config
 	once     sync.Once

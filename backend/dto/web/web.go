@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type FileRequest struct {
+	ID uint `uri:"id" binding:"required,min=1"`
+}
+
 type ResponseDto struct {
 	Success bool          `json:"success"`
 	Data    interface{}   `json:"data,omitempty"`

@@ -1,6 +1,8 @@
 package video
 
 import (
+	"converter/components/converters"
+	"converter/entities"
 	"fmt"
 	"io/fs"
 	"os"
@@ -8,13 +10,24 @@ import (
 )
 
 type MP4ToAVIHandler struct {
+	converters.BaseConverter
+	outputPath string
 	ffmpegPath string
 }
 
-func NewMP4ToAVIHandler() *MP4ToAVIHandler {
+func NewMP4ToAVIHandler(outputPath string) *MP4ToAVIHandler {
 	return &MP4ToAVIHandler{
+		outputPath: outputPath,
 		ffmpegPath: findFFmpeg(),
 	}
+}
+
+func (h *MP4ToAVIHandler) GetOutputPath() string {
+	return h.outputPath
+}
+
+func (h *MP4ToAVIHandler) Rollback() error {
+	return converters.BaseConverter{}.Rollback(h.GetOutputPath())
 }
 
 func findFFmpeg() string {
@@ -34,9 +47,9 @@ func findFFmpeg() string {
 	return "ffmpeg"
 }
 
-func (h *MP4ToAVIHandler) Convert(inputPath, outputPath string, perm fs.FileMode) (int64, error) {
+func (h *MP4ToAVIHandler) Convert(file entities.File, perm fs.FileMode) (int64, error) {
 	var size int64 = 0
-
+	inputPath := file.PathFull()
 	// Проверяем существование входного файла
 	if _, err := os.Stat(inputPath); os.IsNotExist(err) {
 		return size, fmt.Errorf("input file not found: %s", inputPath)
@@ -46,6 +59,13 @@ func (h *MP4ToAVIHandler) Convert(inputPath, outputPath string, perm fs.FileMode
 	if _, err := exec.LookPath(h.ffmpegPath); err != nil {
 		return size, fmt.Errorf("ffmpeg not found: %v", err)
 	}
+
+	// Создаем пустой файл с нужными правами
+	f, err := os.OpenFile(h.GetOutputPath(), os.O_CREATE|os.O_WRONLY, perm)
+	if err != nil {
+		return size, fmt.Errorf("failed to create output file: %v", err)
+	}
+	f.Close()
 
 	// Параметры конвертации MP4 в AVI
 	// Используем Xvid для видео (хорошее качество) и MP3 для аудио
@@ -58,7 +78,7 @@ func (h *MP4ToAVIHandler) Convert(inputPath, outputPath string, perm fs.FileMode
 		"-ar", "44100", // частота дискретизации 44.1 kHz
 		"-ac", "2", // стерео
 		"-y", // перезаписывать выходной файл
-		outputPath,
+		h.GetOutputPath(),
 	}
 
 	cmd := exec.Command(h.ffmpegPath, args...)
@@ -93,13 +113,13 @@ func (h *MP4ToAVIHandler) Convert(inputPath, outputPath string, perm fs.FileMode
 	}
 
 	// Проверяем, что выходной файл создан
-	fileInfo, err := os.Stat(outputPath)
+	fileInfo, err := os.Stat(h.GetOutputPath())
 	if err != nil {
 		return size, fmt.Errorf("output file was not created: %v", err)
 	}
 
 	// Устанавливаем права доступа
-	if err := os.Chmod(outputPath, perm); err != nil {
+	if err := os.Chmod(h.GetOutputPath(), perm); err != nil {
 		fmt.Printf("Warning: could not set permissions: %v\n", err)
 	}
 

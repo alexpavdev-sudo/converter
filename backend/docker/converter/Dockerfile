@@ -13,7 +13,8 @@ RUN go install github.com/pressly/goose/v3/cmd/goose@v3.27.0
 # ---- этап сборки бинарника для продакшена ----
 FROM deps AS builder
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o converter ./cmd/converter
+RUN apk add --no-cache gcc musl-dev
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o converter ./cmd/converter
 
 # ---- продакшен образ (минимальный) ----
 FROM alpine:latest AS prod
@@ -21,8 +22,9 @@ ARG GID=1000
 ARG UID=1000
 RUN apk --no-cache add ca-certificates
 RUN addgroup -g ${GID} appgroup && \
-    adduser -D -u ${UID} -G appgroup appuser \
+    adduser -D -u ${UID} -G appgroup appuser
 RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache tzdata
 WORKDIR /home/appuser/app
 COPY --from=builder /home/appuser/app/converter .
 RUN chown -R appuser:appgroup /home/appuser

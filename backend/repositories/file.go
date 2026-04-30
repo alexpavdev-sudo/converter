@@ -137,3 +137,16 @@ func (r *FileRepository) GetFileById(fileId uint) (entities.File, error) {
 
 	return file, nil
 }
+
+func (r *FileRepository) ExistFile(fileID uint) (bool, error) {
+	var exists bool
+	err := r.db.Raw(
+		"SELECT EXISTS(SELECT 1 FROM files WHERE id = ?)",
+		fileID,
+	).Scan(&exists).Error
+	if err != nil {
+		return false, fmt.Errorf("database error: %w", err)
+	}
+
+	return exists, nil
+}
