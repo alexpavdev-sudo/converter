@@ -10,3 +10,4 @@ nbproject
 .env
 docker-compose.local.yml
 frontend/node_modules
+ssl/

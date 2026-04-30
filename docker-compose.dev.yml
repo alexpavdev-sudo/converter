@@ -21,6 +21,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./frontend/nginx.dev.conf:/etc/nginx/http.d/default.conf
     environment:
       - NODE_ENV=development
 

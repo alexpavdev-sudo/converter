@@ -46,7 +46,11 @@ services:
       target: prod
     ports:
       - "80:80"
+      - "443:443"
     restart: always
+    volumes:
+      - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem
+      - ./ssl/key.pem:/etc/nginx/ssl/key.pem
     networks:
       - frontend-backend
 
