@@ -66,15 +66,9 @@ func initMiddleware(r *gin.Engine) {
 
 	r.Use(sessions.Sessions(app.App().Config.SessionConfig.SessionName, *app.App().SessionStore))
 
-	r.Use(func(c *gin.Context) {
-		patchedReq := csrf.PlaintextHTTPRequest(c.Request)
-		c.Request = patchedReq
-		c.Next()
-	})
-
 	r.Use(adapter.Wrap(csrf.Protect(
 		app.App().Config.BaseConfig.CsrfKey,
-		csrf.Secure(false),
+		csrf.Secure(true),
 		csrf.Path("/"),
 	)))
 }

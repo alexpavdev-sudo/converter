@@ -108,7 +108,7 @@ func (u *StreamFileUploader) Upload() error {
 func (u *StreamFileUploader) checkAccess() error {
 	if u.userService.IsAuthenticated() {
 	} else {
-		guestId, err := u.userService.GuestId()
+		guestId, err := u.userService.InitGuestID()
 		if err != nil {
 			return err
 		}
@@ -205,7 +205,7 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 	if u.userService.IsAuthenticated() {
 		//todo
 	} else {
-		guestID, err := u.userService.GuestId()
+		guestID, err := u.userService.InitGuestID()
 		if err != nil {
 		}
 		guestFile := &entities.GuestFile{

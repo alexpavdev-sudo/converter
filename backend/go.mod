@@ -10,6 +10,7 @@ require (
 	github.com/gin-contrib/sessions v1.0.4
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/csrf v1.7.3
+	github.com/gorilla/websocket v1.5.3
 	github.com/gwatts/gin-adapter v1.0.0
 	github.com/rabbitmq/amqp091-go v1.11.0
 	github.com/redis/go-redis/v9 v9.13.0

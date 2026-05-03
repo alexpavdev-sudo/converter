@@ -12,13 +12,14 @@ import (
 const UploadDir = "/home/appuser/files"
 const ConvertedDir = "/home/appuser/files_converted"
 const PrefixGuestDir = "guest_"
+
 const SessionDuration = 86400
 
-// const SessionDuration = 5
+//const SessionDuration = 5
 
 const CleanupInterval = 300
 
-// const CleanupInterval = 5
+//const CleanupInterval = 5
 
 const MaxSize = 300 * 1024 * 1024
 const MaxSizeFile = 250 * 1024 * 1024

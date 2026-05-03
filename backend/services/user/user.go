@@ -63,7 +63,15 @@ func (s *UserService) UserId() (uint, error) {
 	return 0, errors.New("the user is not authenticated")
 }
 
-func (s *UserService) GuestId() (uint, error) {
+func (s *UserService) InitGuestID() (uint, error) {
+	id, err := s.GuestID()
+	if err == nil {
+		return id, nil
+	}
+	return s.initGuest()
+}
+
+func (s *UserService) GuestID() (uint, error) {
 	id := s.session.Get(keyGuestId)
 	if id != nil && id.(uint) > 0 {
 		var guest entities.Guest
@@ -71,7 +79,7 @@ func (s *UserService) GuestId() (uint, error) {
 			return id.(uint), nil
 		}
 	}
-	return s.initGuest()
+	return 0, errors.New("guest not initialized")
 }
 
 func (s *UserService) initGuest() (uint, error) {
@@ -99,7 +107,7 @@ func (s *UserService) UserPersonalDir() (string, error) {
 }
 
 func (s *UserService) GuestPersonalDir(isAbsolute bool) (string, error) {
-	id, err := s.GuestId()
+	id, err := s.InitGuestID()
 	if err != nil {
 		return "", err
 	}

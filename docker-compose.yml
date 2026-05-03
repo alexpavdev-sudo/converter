@@ -5,7 +5,7 @@ services:
     image: redis:alpine
     restart: always
     networks:
-      - backend-redis
+      - redis
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
 
@@ -32,13 +32,38 @@ services:
       - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}/
     restart: always
     networks:
-      - backend-db
-      - backend-redis
-      - frontend-backend
-      - backend-rabbitmq
+      - db
+      - redis
+      - frontend
+      - rabbitmq
     volumes:
       - ${FILE_FOLDER:-../runtime/converter/files}:/home/appuser/files:rw
       - ${FILE_FOLDER_CONVERTED:-../runtime/converter/files_converted}:/home/appuser/files_converted:rw
+
+  websocket:
+    build:
+      context: ./backend
+      dockerfile: docker/ws/Dockerfile
+      target: prod
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_URL=${DB_URL}
+      - REDIS_ADDR=redis:6379
+      - SESSION_AUTH_KEY=${SESSION_AUTH_KEY}
+      - SESSION_ENC_KEY=${SESSION_ENC_KEY}
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER}
+      - BASIC_AUTH_PW=${BASIC_AUTH_PW}
+      - CSRF_KEY=${CSRF_KEY}
+    restart: always
+    networks:
+      - db
+      - redis
+      - frontend
 
   frontend:
     build:
@@ -52,7 +77,7 @@ services:
       - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem
       - ./ssl/key.pem:/etc/nginx/ssl/key.pem
     networks:
-      - frontend-backend
+      - frontend
 
   db:
     image: postgres:16-alpine
@@ -62,7 +87,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     networks:
-      - backend-db
+      - db
     volumes:
       - ${DB_FOLDER:-../runtime/converter/db/postgres}:/var/lib/postgresql/data
 
@@ -83,13 +108,11 @@ services:
       - rabbitmq
     environment:
       - DB_URL=${DB_URL}
-      - REDIS_ADDR=redis:6379
       - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:${RABBITMQ_PORT}/
     restart: always
     networks:
-      - backend-db
-      - backend-redis
-      - backend-rabbitmq
+      - db
+      - rabbitmq
     volumes:
       - ${FILE_FOLDER:-../runtime/converter/files}:/home/appuser/files:rw
       - ${FILE_FOLDER_CONVERTED:-../runtime/converter/files_converted}:/home/appuser/files_converted:rw
@@ -98,7 +121,7 @@ services:
     image: rabbitmq:4.3.0-management-alpine
     restart: always
     networks:
-      - backend-rabbitmq
+      - rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
@@ -108,14 +131,14 @@ services:
       - ${RABBITMQ_MGMT_PORT}:15672
 
 networks:
-  frontend-backend:
+  frontend:
     driver: bridge
-  backend-redis:
-    driver: bridge
-    internal: true
-  backend-db:
+  redis:
     driver: bridge
     internal: true
-  backend-rabbitmq:
+  db:
+    driver: bridge
+    internal: true
+  rabbitmq:
     driver: bridge
     internal: true

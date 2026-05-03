@@ -12,18 +12,14 @@ CREATE TABLE files
     format         VARCHAR(50)  NOT NULL,
     size           BIGINT       NOT NULL,
     size_processed BIGINT,
+    deleted        SMALLINT     NOT NULL DEFAULT 0,
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Уникальный индекс на stored_name
 CREATE UNIQUE INDEX idx_files_stored_name ON files (stored_name);
 CREATE UNIQUE INDEX idx_files_processed_path ON files (processed_path);
 
--- Индексы для поиска
-CREATE INDEX idx_files_extension ON files (extension);
-CREATE INDEX idx_files_format ON files (format);
-CREATE INDEX idx_files_created_at ON files (created_at);
 CREATE INDEX idx_files_status ON files (status);
 
 -- +goose Down

@@ -7,6 +7,7 @@ import (
 	"converter/entities"
 	"converter/helpers"
 	"converter/repositories"
+	"converter/services/notify"
 	"database/sql"
 	"fmt"
 	"gorm.io/gorm"
@@ -44,9 +45,12 @@ func (c *Converter) Run() error {
 	err = c.repo.SetStatus(file.ID, entities.StatusProcessing)
 	defer func() {
 		if r := recover(); r != nil {
-			_ = c.repo.SetStatusError(file.ID, fmt.Sprintf("panic: %v", r))
+			log.Printf("Panic: %v", r)
+			_ = c.repo.SetStatusError(file.ID, "panic")
+			c.notifyError(&file, "panic")
 		} else if err != nil {
 			_ = c.repo.SetStatusError(file.ID, err.Error())
+			c.notifyError(&file, err.Error())
 		}
 	}()
 	if err != nil {
@@ -89,8 +93,24 @@ func (c *Converter) Run() error {
 		return err
 	}
 
+	c.notify(&file)
 	log.Printf("done: %d", c.fileId)
+
 	return nil
+}
+
+func (c *Converter) notify(file *entities.File) {
+	err := notify.NotifyService{}.NotifyConvertFileSuccess(file.ID, file.OriginalName)
+	if err != nil {
+		log.Printf("error save notification: %s", err.Error())
+	}
+}
+
+func (c *Converter) notifyError(file *entities.File, error string) {
+	err := notify.NotifyService{}.NotifyConvertFileError(file.ID, file.OriginalName, error)
+	if err != nil {
+		log.Printf("error save notification: %s", err.Error())
+	}
 }
 
 func (c *Converter) generateUniqueProcessedPath() (string, error) {

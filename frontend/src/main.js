@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import api from './services/api';
 import { getCSRFService } from './services/csrf';
+import {useWebSocket} from '@/services/useWebSocket';
 
 import './assets/styles/main.scss'
 
@@ -12,6 +13,9 @@ async function bootstrap() {
     try {
         const csrfService = getCSRFService(api);
         await csrfService.init();
+
+        const {connect} = useWebSocket();
+        connect();
 
         window.addEventListener('csrf:error', () => {
             console.error('CSRF token validation failed');

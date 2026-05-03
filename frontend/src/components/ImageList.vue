@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import func from '@/services/functionHelper.js';
+import func from '@/services/functions.js';
 import type {File} from '@/types/file';
 import type {Format} from '@/types/format';
 

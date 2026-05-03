@@ -1,4 +1,4 @@
-class FunctionHelper {
+class Functions {
     formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes'
         const k = 1024
@@ -8,4 +8,4 @@ class FunctionHelper {
     }
 }
 
-export default new FunctionHelper()
+export default new Functions()

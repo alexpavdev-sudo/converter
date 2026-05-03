@@ -7,6 +7,14 @@ services:
     volumes:
       - ./backend:/home/appuser/app
 
+  websocket:
+    build:
+      target: dev
+    ports:
+      - "2347:2345"
+    volumes:
+      - ./backend:/home/appuser/app
+
   converter:
     build:
       target: dev
@@ -30,7 +38,7 @@ services:
       - "5432:5432"
 
 networks:
-  backend-db:
+  db:
     internal: false
-  backend-rabbitmq:
+  rabbitmq:
     internal: false

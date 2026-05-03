@@ -45,7 +45,7 @@ func GetFiles(c *gin.Context) {
 			return
 		}
 	} else {
-		guestId, err := userService.GuestId()
+		guestId, err := userService.InitGuestID()
 		if err != nil {
 			app.Fail(c, 400, "invalid_guest", "Guest not found")
 			return
@@ -77,7 +77,7 @@ func findFile(c *gin.Context) (*entities.File, error) {
 	}
 
 	userService := user.NewUserService(sessions.Default(c))
-	guestId, err := userService.GuestId()
+	guestId, err := userService.InitGuestID()
 	if err != nil {
 		return nil, errors.New("guest not found")
 	}
