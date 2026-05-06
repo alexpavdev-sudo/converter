@@ -13,19 +13,19 @@ import (
 const keyGuestId = "guest_id"
 const keyUserId = "user_id"
 
-type UserService struct {
+type SessionUserService struct {
 	db      *gorm.DB
 	session sessions.Session
 }
 
-func NewUserService(session sessions.Session) *UserService {
-	return &UserService{
+func NewSessionUserService(session sessions.Session) *SessionUserService {
+	return &SessionUserService{
 		db:      app.App().DB,
 		session: session,
 	}
 }
 
-func (s *UserService) generateGuestPersonalDir() (string, error) {
+func (s *SessionUserService) generateGuestPersonalDir() (string, error) {
 	for {
 		randStr, err := helpers.GenerateRandomStoredName(16)
 		if err != nil {
@@ -46,7 +46,7 @@ func (s *UserService) generateGuestPersonalDir() (string, error) {
 	}
 }
 
-func (s *UserService) IsAuthenticated() bool {
+func (s *SessionUserService) IsAuthenticated() bool {
 	_, err := s.UserId()
 	if err == nil {
 		return true
@@ -54,7 +54,7 @@ func (s *UserService) IsAuthenticated() bool {
 	return false
 }
 
-func (s *UserService) UserId() (uint, error) {
+func (s *SessionUserService) UserId() (uint, error) {
 	id := s.session.Get(keyUserId)
 	if id != nil && id.(uint) > 0 {
 		return id.(uint), nil
@@ -63,7 +63,7 @@ func (s *UserService) UserId() (uint, error) {
 	return 0, errors.New("the user is not authenticated")
 }
 
-func (s *UserService) InitGuestID() (uint, error) {
+func (s *SessionUserService) InitGuestID() (uint, error) {
 	id, err := s.GuestID()
 	if err == nil {
 		return id, nil
@@ -71,7 +71,7 @@ func (s *UserService) InitGuestID() (uint, error) {
 	return s.initGuest()
 }
 
-func (s *UserService) GuestID() (uint, error) {
+func (s *SessionUserService) GuestID() (uint, error) {
 	id := s.session.Get(keyGuestId)
 	if id != nil && id.(uint) > 0 {
 		var guest entities.Guest
@@ -82,7 +82,7 @@ func (s *UserService) GuestID() (uint, error) {
 	return 0, errors.New("guest not initialized")
 }
 
-func (s *UserService) initGuest() (uint, error) {
+func (s *SessionUserService) initGuest() (uint, error) {
 	personalDir, err := s.generateGuestPersonalDir()
 	if err != nil {
 		return 0, err
@@ -101,12 +101,12 @@ func (s *UserService) initGuest() (uint, error) {
 	return guest.ID, nil
 }
 
-func (s *UserService) UserPersonalDir() (string, error) {
+func (s *SessionUserService) UserPersonalDir() (string, error) {
 	//todo
 	return "", errors.New("error")
 }
 
-func (s *UserService) GuestPersonalDir(isAbsolute bool) (string, error) {
+func (s *SessionUserService) GuestPersonalDir(isAbsolute bool) (string, error) {
 	id, err := s.InitGuestID()
 	if err != nil {
 		return "", err

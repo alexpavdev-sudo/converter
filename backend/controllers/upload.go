@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"converter/app"
+	"converter/components/queue_conversion"
 	"converter/config"
 	"converter/dto/web"
 	"converter/entities"
@@ -23,7 +24,7 @@ func Upload(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	uploader := uploader.NewStreamFileUploader(reader, config.MaxSizeFile, config.MaxSize, session)
+	uploader := uploader.NewStreamFileUploader(reader, config.MaxSizeFile, config.MaxSize, user.NewSessionUserService(session), queue_conversion.NewRabbitMQConverterQueue())
 	err = uploader.Upload()
 	if err != nil {
 		app.Fail(c, 400, "1", err.Error())
@@ -36,7 +37,7 @@ func Upload(c *gin.Context) {
 }
 
 func GetFiles(c *gin.Context) {
-	userService := user.NewUserService(sessions.Default(c))
+	userService := user.NewSessionUserService(sessions.Default(c))
 
 	if userService.IsAuthenticated() {
 		_, err := userService.UserId()
@@ -76,7 +77,7 @@ func findFile(c *gin.Context) (*entities.File, error) {
 		return nil, err
 	}
 
-	userService := user.NewUserService(sessions.Default(c))
+	userService := user.NewSessionUserService(sessions.Default(c))
 	guestId, err := userService.InitGuestID()
 	if err != nil {
 		return nil, errors.New("guest not found")

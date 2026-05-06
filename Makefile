@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: help migrate-up migrate-down migrate-status migrate-create
+.PHONY: help migrate-up migrate-down migrate-status migrate-create test
 
 .PHONY: help
 help: ## Показать эту справку [default]
@@ -21,3 +21,7 @@ migrate-status:  ## Показать статус миграций
 .PHONY: migrate-create
 migrate-create:  ## Создать новую миграцию (make migrate-create name=my_migration)
 	docker-compose exec backend goose -dir ./migrations create "$(name)" sql
+
+.PHONY: test
+test:  ## запустить go-тесты
+	docker-compose run --build --rm test $(args)

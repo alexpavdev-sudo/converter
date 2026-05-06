@@ -1,20 +1,16 @@
 package uploader
 
 import (
-	"context"
 	"converter/app"
 	"converter/components/cache"
+	"converter/components/queue_conversion"
 	"converter/config"
-	"converter/dto/inner"
 	"converter/entities"
 	"converter/helpers"
 	"converter/repositories"
 	"converter/services/user"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"github.com/gin-contrib/sessions"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/gorm"
 	"io"
 	"log"
@@ -31,20 +27,22 @@ type StreamFileUploader struct {
 	maxFileSize int64
 	maxSize     int64
 	savedFiles  []entities.File
-	userService *user.UserService
+	userService user.UserService
+	queue       queue_conversion.ConverterQueue
 }
 
 func (u *StreamFileUploader) CountSavedFiles() int {
 	return len(u.savedFiles)
 }
 
-func NewStreamFileUploader(reader *multipart.Reader, maxFileSize int64, maxSize int64, session sessions.Session) *StreamFileUploader {
+func NewStreamFileUploader(reader *multipart.Reader, maxFileSize int64, maxSize int64, userService user.UserService, queue queue_conversion.ConverterQueue) *StreamFileUploader {
 	return &StreamFileUploader{
 		reader:      reader,
 		db:          app.App().DB,
 		maxFileSize: maxFileSize,
 		maxSize:     maxSize,
-		userService: user.NewUserService(session),
+		userService: userService,
+		queue:       queue,
 	}
 }
 
@@ -107,6 +105,7 @@ func (u *StreamFileUploader) Upload() error {
 
 func (u *StreamFileUploader) checkAccess() error {
 	if u.userService.IsAuthenticated() {
+		//todo
 	} else {
 		guestId, err := u.userService.InitGuestID()
 		if err != nil {
@@ -207,6 +206,7 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 	} else {
 		guestID, err := u.userService.InitGuestID()
 		if err != nil {
+			return nil, err
 		}
 		guestFile := &entities.GuestFile{
 			FileID:  fileRecord.ID,
@@ -220,7 +220,7 @@ func (u *StreamFileUploader) saveFilePart(part *multipart.Part, format string) (
 			return nil, fmt.Errorf("commit failed: %w", err)
 		}
 		clearCache(guestID)
-		sendConversion(fileRecord.ID)
+		u.sendConversion(fileRecord.ID)
 	}
 	needRemoveOnExit = false
 	return fileRecord, nil
@@ -234,52 +234,11 @@ func clearCache(guestId uint) {
 	}
 }
 
-func exit(err error, msg string) {
+func (u *StreamFileUploader) sendConversion(fileId uint) {
+	err := u.queue.Push(fileId)
 	if err != nil {
-		log.Panicf("%s: %s", msg, err)
+		log.Println(err)
 	}
-}
-
-func sendConversion(fileId uint) {
-	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
-	exit(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	exit(err, "Failed to open a channel")
-	defer ch.Close()
-
-	q, err := ch.QueueDeclare(
-		"task_queue", // name
-		true,         // durability
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		amqp.Table{
-			amqp.QueueTypeArg: amqp.QueueTypeQuorum,
-		},
-	)
-	exit(err, "Failed to declare a queue")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	body, err := json.Marshal(&inner.MessageDto{FileID: fileId})
-	if err != nil {
-		log.Printf("error: %s", err)
-	}
-	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,
-		amqp.Publishing{
-			DeliveryMode: amqp.Persistent,
-			ContentType:  "application/json",
-			Body:         body,
-		})
-	exit(err, "Failed to publish a message")
-	log.Printf(" [x] Sent %s", body)
 }
 
 func (u *StreamFileUploader) generateUniqueStoredName() (string, error) {

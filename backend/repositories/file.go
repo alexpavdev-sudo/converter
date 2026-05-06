@@ -7,21 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
-type FileRepository struct {
+type FileDbRepository struct {
 	db *gorm.DB
 }
 
-func NewFileRepository(db *gorm.DB) *FileRepository {
-	return &FileRepository{
+func NewFileRepository(db *gorm.DB) *FileDbRepository {
+	return &FileDbRepository{
 		db: db,
 	}
 }
 
-func (r *FileRepository) CloseRepo() error {
+func (r *FileDbRepository) CloseRepo() error {
 	return nil
 }
 
-func (r *FileRepository) SetStatusError(fileID uint, details string) error {
+func (r *FileDbRepository) SetStatusError(fileID uint, details string) error {
 	tx := r.db.Begin(&sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if tx.Error != nil {
 		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
@@ -50,19 +50,19 @@ func (r *FileRepository) SetStatusError(fileID uint, details string) error {
 	return nil
 }
 
-func (r *FileRepository) SetProcessedPath(fileID uint, processedPath string) error {
+func (r *FileDbRepository) SetProcessedPath(fileID uint, processedPath string) error {
 	return r.db.Model(&entities.File{}).
 		Where("id = ?", fileID).
 		Updates(map[string]interface{}{"processed_path": processedPath}).Error
 }
 
-func (r *FileRepository) SetStatusProcessed(fileID uint, size int64) error {
+func (r *FileDbRepository) SetStatusProcessed(fileID uint, size int64) error {
 	return r.db.Model(&entities.File{}).
 		Where("id = ?", fileID).
 		Updates(map[string]interface{}{"status": entities.StatusProcessed, "size_processed": size}).Error
 }
 
-func (r *FileRepository) SetStatus(fileId uint, status entities.FileStatus) error {
+func (r *FileDbRepository) SetStatus(fileId uint, status entities.FileStatus) error {
 	result := r.db.Model(&entities.File{}).
 		Where("id = ?", fileId).
 		Updates(map[string]interface{}{"status": status})
@@ -70,7 +70,7 @@ func (r *FileRepository) SetStatus(fileId uint, status entities.FileStatus) erro
 	return result.Error
 }
 
-func (r *FileRepository) GetFiles(guestId uint) ([]entities.File, error) {
+func (r *FileDbRepository) GetFiles(guestId uint) ([]entities.File, error) {
 	var files []entities.File
 	err := r.db.Model(&entities.File{}).
 		Select("files.*").
@@ -88,7 +88,7 @@ func (r *FileRepository) GetFiles(guestId uint) ([]entities.File, error) {
 	return files, nil
 }
 
-func (r *FileRepository) GetCountFiles(guestId uint) (int64, error) {
+func (r *FileDbRepository) GetCountFiles(guestId uint) (int64, error) {
 	var count int64
 	err := r.db.Model(&entities.File{}).
 		Joins("INNER JOIN guest_files ON guest_files.file_id = files.id").
@@ -102,7 +102,7 @@ func (r *FileRepository) GetCountFiles(guestId uint) (int64, error) {
 	return count, nil
 }
 
-func (r *FileRepository) GetFile(guestId uint, fileId uint) (entities.File, error) {
+func (r *FileDbRepository) GetFile(guestId uint, fileId uint) (entities.File, error) {
 	var file entities.File
 	err := r.db.Model(&entities.File{}).
 		Select("files.*").
@@ -121,7 +121,7 @@ func (r *FileRepository) GetFile(guestId uint, fileId uint) (entities.File, erro
 	return file, nil
 }
 
-func (r *FileRepository) GetFileById(fileId uint) (entities.File, error) {
+func (r *FileDbRepository) GetFileById(fileId uint) (entities.File, error) {
 	var file entities.File
 	err := r.db.Model(&entities.File{}).
 		Select("*").
@@ -138,7 +138,7 @@ func (r *FileRepository) GetFileById(fileId uint) (entities.File, error) {
 	return file, nil
 }
 
-func (r *FileRepository) ExistFile(fileID uint) (bool, error) {
+func (r *FileDbRepository) ExistFile(fileID uint) (bool, error) {
 	var exists bool
 	err := r.db.Raw(
 		"SELECT EXISTS(SELECT 1 FROM files WHERE id = ?)",

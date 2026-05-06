@@ -37,6 +37,25 @@ services:
     ports:
       - "5432:5432"
 
+  test:
+    build:
+      context: ./backend
+      dockerfile: docker/server/Dockerfile
+      target: test
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    depends_on:
+      - db
+    environment:
+      - DB_URL=${DB_URL}
+    restart: no
+    networks:
+      - db
+    profiles:
+      - test
+    command: ["-v", "./..."]
+
 networks:
   db:
     internal: false

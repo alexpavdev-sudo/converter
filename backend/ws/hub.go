@@ -33,7 +33,7 @@ func (h *Hub) Run() {
 			}
 			h.guests[client.GuestID][client] = true
 			h.mu.Unlock()
-			log.Printf("Client with guest_id=%s connected (total tabs: %d)",
+			log.Printf("Client with guest_id=%d connected (total tabs: %d)",
 				client.GuestID, len(h.guests[client.GuestID]))
 
 		case client := <-h.unregister:
@@ -48,7 +48,7 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mu.Unlock()
-			log.Printf("Client with guest_id=%s disconnected", client.GuestID)
+			log.Printf("Client with guest_id=%d disconnected", client.GuestID)
 
 		case notify := <-h.Notify:
 			h.send(&notify)
@@ -62,7 +62,7 @@ func (h *Hub) send(notificationDto *ws_dto.NotificationDto) {
 
 	guests, ok := h.guests[notificationDto.GuestID]
 	if !ok {
-		log.Printf("No active connections for guest_id=%s", notificationDto.GuestID)
+		log.Printf("No active connections for guest_id=%d", notificationDto.GuestID)
 		return
 	}
 

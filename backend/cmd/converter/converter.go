@@ -72,7 +72,7 @@ func main() {
 
 				err = converter.NewConverter(msg.FileID).Run()
 				if err != nil {
-					log.Printf(err.Error())
+					log.Println(err.Error())
 				}
 
 				delivery.Ack(false)

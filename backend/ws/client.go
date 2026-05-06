@@ -101,7 +101,7 @@ func (c *Client) writePump() {
 
 			data, err := json.Marshal(msg)
 			if err != nil {
-				log.Printf("marshal error for guest %s: %v", c.GuestID, err)
+				log.Printf("marshal error for guest %d: %v", c.GuestID, err)
 				continue
 			}
 

@@ -26,7 +26,7 @@ func main() {
 	go ws.StartNotificationsWatcher(app.App().DB, hub)
 
 	r.GET("/ws", func(c *gin.Context) {
-		userService := user.NewUserService(sessions.Default(c))
+		userService := user.NewSessionUserService(sessions.Default(c))
 		guestID, err := userService.GuestID()
 		if err != nil {
 			app.Fail(c, 500, "1", err.Error())

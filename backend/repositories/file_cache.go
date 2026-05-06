@@ -9,7 +9,7 @@ import (
 )
 
 type CachedFileRepository struct {
-	repo  *FileRepository
+	FileDbRepository
 	cache cache.Cache
 }
 
@@ -19,8 +19,8 @@ func NewCachedFileRepository(db *gorm.DB) (*CachedFileRepository, error) {
 		return nil, err
 	}
 	return &CachedFileRepository{
-		repo:  NewFileRepository(db),
-		cache: cache,
+		FileDbRepository: *NewFileRepository(db),
+		cache:            cache,
 	}, nil
 }
 
@@ -28,123 +28,38 @@ func (r *CachedFileRepository) CloseRepo() error {
 	return r.cache.Close()
 }
 
-func (r *CachedFileRepository) SetProcessedPath(fileID uint, processedPath string) error {
-	return r.repo.SetProcessedPath(fileID, processedPath)
-}
-
-func (r *CachedFileRepository) SetStatusProcessed(fileID uint, size int64) error {
-	return r.repo.SetStatusProcessed(fileID, size)
-}
-
-func (r *CachedFileRepository) SetStatusError(fileID uint, msgErr string) error {
-	return r.repo.SetStatusError(fileID, msgErr)
-}
-
-func (r *CachedFileRepository) SetStatus(fileId uint, status entities.FileStatus) error {
-	return r.repo.SetStatus(fileId, status)
-}
-
 func (r *CachedFileRepository) GetFiles(guestId uint) ([]entities.File, error) {
 	key := r.Key(fmt.Sprintf("files:%d", guestId))
-
-	var files []entities.File
-	err := r.cache.Get(key, &files)
-	if err == nil {
-		return files, nil
-	}
-
-	files, err = r.repo.GetFiles(guestId)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := r.cache.Set(key, files, []string{
-		r.TagGuest(guestId),
-		r.TagAll(),
-	}); err != nil {
-		log.Printf("failed to set cache: %v", err)
-	}
-
-	return files, nil
+	tags := []string{r.TagGuest(guestId), r.TagAll()}
+	return cacheOrFetch(r, key, tags, func() ([]entities.File, error) {
+		return r.FileDbRepository.GetFiles(guestId)
+	}, nil)
 }
 
 func (r *CachedFileRepository) GetCountFiles(guestId uint) (int64, error) {
 	key := r.Key(fmt.Sprintf("countFiles:%d", guestId))
-
-	var count int64
-	err := r.cache.Get(key, &count)
-	if err == nil {
-		return count, nil
-	}
-
-	count, err = r.repo.GetCountFiles(guestId)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := r.cache.Set(key, count, []string{
-		r.TagGuest(guestId),
-		r.TagAll(),
-	}); err != nil {
-		log.Printf("failed to set cache: %v", err)
-	}
-
-	return count, nil
+	tags := []string{r.TagGuest(guestId), r.TagAll()}
+	return cacheOrFetch(r, key, tags, func() (int64, error) {
+		return r.FileDbRepository.GetCountFiles(guestId)
+	}, nil)
 }
 
 func (r *CachedFileRepository) GetFile(guestId uint, fileId uint) (entities.File, error) {
 	key := r.Key(fmt.Sprintf("file:guest:%d:file:%d", guestId, fileId))
-
-	var file entities.File
-	err := r.cache.Get(key, &file)
-	if err == nil && file.ID != 0 {
-		return file, nil
-	}
-
-	file, err = r.repo.GetFile(guestId, fileId)
-	if err != nil {
-		return file, err
-	}
-
-	if file.ID != 0 {
-		if err := r.cache.Set(key, file, []string{
-			r.TagGuest(guestId),
-			r.TagAll(),
-		}); err != nil {
-			log.Printf("failed to set cache: %v", err)
-		}
-	}
-
-	return file, nil
+	tags := []string{r.TagGuest(guestId), r.TagAll()}
+	isValid := func(f entities.File) bool { return f.ID != 0 }
+	return cacheOrFetch(r, key, tags, func() (entities.File, error) {
+		return r.FileDbRepository.GetFile(guestId, fileId)
+	}, isValid)
 }
 
 func (r *CachedFileRepository) GetFileById(fileId uint) (entities.File, error) {
 	key := r.Key(fmt.Sprintf("fileById:%d", fileId))
-
-	var file entities.File
-	err := r.cache.Get(key, &file)
-	if err == nil && file.ID != 0 {
-		return file, nil
-	}
-
-	file, err = r.repo.GetFileById(fileId)
-	if err != nil {
-		return file, err
-	}
-
-	if file.ID != 0 {
-		if err := r.cache.Set(key, file, []string{
-			r.TagAll(),
-		}); err != nil {
-			log.Printf("failed to set cache: %v", err)
-		}
-	}
-
-	return file, nil
-}
-
-func (r *CachedFileRepository) ExistFile(fileID uint) (bool, error) {
-	return r.repo.ExistFile(fileID)
+	tags := []string{r.TagAll()}
+	isValid := func(f entities.File) bool { return f.ID != 0 }
+	return cacheOrFetch(r, key, tags, func() (entities.File, error) {
+		return r.FileDbRepository.GetFileById(fileId)
+	}, isValid)
 }
 
 func (r CachedFileRepository) Key(k string) string {
@@ -157,4 +72,34 @@ func (r CachedFileRepository) TagAll() string {
 
 func (r CachedFileRepository) TagGuest(guestId uint) string {
 	return r.Key(fmt.Sprintf("guest:%d", guestId))
+}
+
+func cacheOrFetch[T any](
+	r *CachedFileRepository,
+	key string,
+	tags []string,
+	fetch func() (T, error),
+	isValid func(T) bool, // необязательная проверка валидности результата
+) (T, error) {
+	var result T
+	err := r.cache.Get(key, &result)
+	if err == nil {
+		if isValid == nil || isValid(result) {
+			return result, nil
+		}
+	}
+
+	result, err = fetch()
+	if err != nil {
+		return result, err
+	}
+
+	if isValid != nil && !isValid(result) {
+		return result, nil
+	}
+
+	if setErr := r.cache.Set(key, result, tags); setErr != nil {
+		log.Printf("failed to set cache: %v", setErr)
+	}
+	return result, nil
 }

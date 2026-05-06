@@ -28,7 +28,7 @@ type Application struct {
 	Config       *config.Config
 	SessionStore *sessions.Store
 	DB           *gorm.DB
-	FileRepo     repositories.FileRepositoryInterface
+	FileRepo     repositories.FileRepository
 }
 
 func App() *Application {
@@ -59,7 +59,7 @@ func Init(isConsole bool) {
 	})
 }
 
-func getCacheFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
+func getCacheFileRepo(db *gorm.DB) repositories.FileRepository {
 	repo, err := repositories.NewCachedFileRepository(db)
 	if err != nil {
 		log.Fatal("Config error:", err)
@@ -67,7 +67,7 @@ func getCacheFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
 	return repo
 }
 
-func getFileRepo(db *gorm.DB) repositories.FileRepositoryInterface {
+func getFileRepo(db *gorm.DB) repositories.FileRepository {
 	return repositories.NewFileRepository(db)
 }
 

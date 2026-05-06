@@ -19,7 +19,7 @@ const PermFile = 0600
 
 type Converter struct {
 	fileId uint
-	repo   repositories.FileRepositoryInterface
+	repo   repositories.FileRepository
 	db     *gorm.DB
 }
 

@@ -4,7 +4,7 @@ import (
 	"converter/entities"
 )
 
-type FileRepositoryInterface interface {
+type FileRepository interface {
 	GetFiles(guestId uint) ([]entities.File, error)
 	GetCountFiles(guestId uint) (int64, error)
 	GetFile(guestId uint, fileId uint) (entities.File, error)
